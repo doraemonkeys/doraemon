@@ -9,12 +9,10 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
 	"os/exec"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -132,7 +130,7 @@ func UserNameTest(userName string) bool {
 	return true
 }
 
-func GetIPV4() (string, error) {
+func GetPublicIPV4() (string, error) {
 	resp, err := http.Get("https://ipv4.netarm.com")
 	if err != nil {
 		return "", err
@@ -142,21 +140,7 @@ func GetIPV4() (string, error) {
 	return strings.TrimSpace(string(content)), nil
 }
 
-func GetIPV6Lan() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
-	}
-	for _, addr := range addrs {
-		ipv6 := regexp.MustCompile(`(\w+:){7}\w+`).FindString(addr.String())
-		if strings.Count(ipv6, ":") == 7 {
-			return ipv6, nil
-		}
-	}
-	return "", errors.New("获取ipv6失败")
-}
-
-func GetIPV6() (string, error) {
+func GetPublicIPV6() (string, error) {
 	resp, err := http.Get("https://ipv6.netarm.com")
 	if err != nil {
 		return "", err
