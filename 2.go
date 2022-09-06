@@ -66,29 +66,6 @@ func GetWifiPassword(wifiname string) (string, error) {
 	return string(match[1]), nil
 }
 
-//等待执行完毕才返回,不反回输出
-func CmdNoOutput(dir string, params []string) error {
-	cmd := exec.Command("cmd")
-	cmd_in := bytes.NewBuffer(nil)
-	cmd.Stdin = cmd_in
-	if dir != "" {
-		cmd.Dir = dir
-	}
-	command := ""
-	for i := 0; i < len(params); i++ {
-		command = command + params[i]
-		if i != len(params)-1 {
-			command += " "
-		}
-	}
-	cmd_in.WriteString(command + "\n")
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 //ping局域网内所有ip
 func PingAll(srcIP string) error {
 	//检查ip是否合法

@@ -150,3 +150,51 @@ func ReverseRead(name string, lineNum uint) ([]string, error) {
 	buff = append(buff, lineStr)
 	return buff, nil
 }
+
+//读取倒数第n行(n从1开始),
+//若n大于文件行数则返回第一行。
+func ReadStartWithLastLine(filename string, n int) (string, error) {
+	//打开文件
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	//获取文件大小
+	fs, err := file.Stat()
+	if err != nil {
+		return "", err
+	}
+	fileSize := fs.Size()
+
+	var offset int64 = -1   //偏移量，初始化为-1，若为0则会读到EOF
+	char := make([]byte, 1) //用于读取单个字节
+	lineStr := ""           //存放一行的数据
+	lineCount := 0          //行数
+	for (-offset) <= fileSize {
+		//通过Seek函数从末尾移动游标然后每次读取一个字节，offset为偏移量
+		file.Seek(offset, io.SeekEnd)
+		_, err := file.Read(char)
+		if err != nil {
+			return "", err
+		}
+		if char[0] == '\n' {
+			lineCount++
+			if lineCount == n {
+				return lineStr, nil
+			}
+			//判断文件类型为unix(LF)还是windows(CRLF)
+			file.Seek(-2, io.SeekCurrent) //io.SeekCurrent表示游标放置于当前位置，逆向偏移2个字节
+			//读完一个字节后游标会自动正向偏移一个字节
+			file.Read(char)
+			if char[0] == '\r' {
+				offset-- //windows跳过'\r'
+			}
+			lineStr = ""
+		} else {
+			lineStr = string(char) + lineStr
+		}
+		offset--
+	}
+	return lineStr, nil
+}

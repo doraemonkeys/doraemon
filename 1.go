@@ -184,6 +184,29 @@ func Cmd(dir string, params []string) (string, error) {
 	return string(GbkToUtf8(output)), nil
 }
 
+//等待执行完毕才返回,不反回输出
+func CmdNoOutput(dir string, params []string) error {
+	cmd := exec.Command("cmd")
+	cmd_in := bytes.NewBuffer(nil)
+	cmd.Stdin = cmd_in
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	command := ""
+	for i := 0; i < len(params); i++ {
+		command = command + params[i]
+		if i != len(params)-1 {
+			command += " "
+		}
+	}
+	cmd_in.WriteString(command + "\n")
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //colors描述了后面每个字符串的颜色属性，colors与strs长度必须相同,
 //注意字符串不要忘了带上空格和换行。
 func ColorPrint(attributes []color.Attribute, strs ...string) {
