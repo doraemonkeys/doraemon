@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -324,4 +325,19 @@ func GetWLANDefaultGateway() (string, error) {
 		return "", errors.New("not found")
 	}
 	return string(macth[1]), nil
+}
+
+func NetWorkStatus() bool {
+	timeout := time.Duration(time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+	resp, err := client.Get("https://www.baidu.com")
+	if err != nil {
+		log.Println("测试网络连接出现问题！", err)
+		return false
+	}
+	defer resp.Body.Close()
+	log.Println("Net Status , OK", resp.Status)
+	return true
 }
