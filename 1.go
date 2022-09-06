@@ -10,7 +10,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"net/http/cookiejar"
 	"os"
 	"os/exec"
 	"runtime"
@@ -21,7 +20,6 @@ import (
 	"github.com/axgle/mahonia"
 	"github.com/fatih/color"
 	"golang.org/x/net/html/charset"
-	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -128,32 +126,6 @@ func UserNameTest(userName string) bool {
 		}
 	}
 	return true
-}
-
-func GetPublicIPV4() (string, error) {
-	resp, err := http.Get("https://ipv4.netarm.com")
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	content, _ := ioutil.ReadAll(resp.Body)
-	return strings.TrimSpace(string(content)), nil
-}
-
-func GetPublicIPV6() (string, error) {
-	resp, err := http.Get("https://ipv6.netarm.com")
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	content, _ := ioutil.ReadAll(resp.Body)
-	return strings.TrimSpace(string(content)), nil
-}
-
-// 初始化client
-func Get_client() (http.Client, error) {
-	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	return http.Client{Jar: jar}, nil
 }
 
 //获取当前程序的执行路径(包含可执行文件名称)
@@ -319,6 +291,44 @@ func ColorPrint(attributes []color.Attribute, strs ...string) {
 			fmt.Print(str)
 		}
 	}
+}
+
+//十六进制转换为十进制
+func HexToInt(hex string) (int, error) {
+	if len(hex) > 2 {
+		if string(hex[0:2]) == "0x" || string(hex[0:2]) == "0X" {
+			hex = hex[2:]
+		}
+	}
+	var result int
+	for _, v := range hex {
+		result *= 16
+		switch {
+		case v >= '0' && v <= '9':
+			result += int(v - '0')
+		case v >= 'a' && v <= 'f':
+			result += int(v - 'a' + 10)
+		case v >= 'A' && v <= 'F':
+			result += int(v - 'A' + 10)
+		default:
+			return 0, errors.New("invalid hex string")
+		}
+	}
+	return result, nil
+}
+
+//字符转整型
+func CharToInt(c byte) int {
+	if c >= '0' && c <= '9' {
+		return int(c - '0')
+	}
+	if c >= 'a' && c <= 'f' {
+		return int(c-'a') + 10
+	}
+	if c >= 'A' && c <= 'F' {
+		return int(c-'A') + 10
+	}
+	return 0
 }
 
 //随机获取user-agent,(含移动端)
