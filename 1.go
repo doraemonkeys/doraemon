@@ -245,6 +245,11 @@ func HexToInt(hex string) (int, error) {
 	return result, nil
 }
 
+//获取昨天的日期
+func GetYesterday() time.Time {
+	return time.Now().AddDate(0, 0, -1)
+}
+
 //字符转整型
 func CharToInt(c byte) int {
 	if c >= '0' && c <= '9' {

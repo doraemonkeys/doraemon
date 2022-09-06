@@ -152,7 +152,7 @@ func ReverseRead(name string, lineNum uint) ([]string, error) {
 }
 
 //读取倒数第n行(n从1开始),
-//若n大于文件行数则返回第一行。
+//若n大于文件行数则返回错误io.EOF。
 func ReadStartWithLastLine(filename string, n int) (string, error) {
 	//打开文件
 	file, err := os.Open(filename)
@@ -190,11 +190,16 @@ func ReadStartWithLastLine(filename string, n int) (string, error) {
 			if char[0] == '\r' {
 				offset-- //windows跳过'\r'
 			}
-			lineStr = ""
-		} else {
+			offset--
+			continue
+		}
+		if lineCount == n-1 {
 			lineStr = string(char) + lineStr
 		}
 		offset--
+	}
+	if lineStr == "" {
+		return "", io.EOF
 	}
 	return lineStr, nil
 }
