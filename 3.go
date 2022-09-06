@@ -2,6 +2,7 @@ package doraemon
 
 import (
 	"crypto/md5"
+	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -80,7 +81,21 @@ func CurrentFilePath() (string, error) {
 	return file, nil
 }
 
-//获取文件md5
+//获取文件的SHA1值(字母小写)
+func GetFileSha1(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	hash := sha1.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+//获取文件md5(字母小写)
 func GetFileMd5(filename string) (string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
