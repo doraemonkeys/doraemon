@@ -129,12 +129,15 @@ func ReverseRead(name string, lineNum uint) ([]string, error) {
 			return buff, err
 		}
 		if char[0] == '\n' {
-			//判断文件类型为unix(LF)还是windows(CRLF)
-			file.Seek(-2, io.SeekCurrent) //io.SeekCurrent表示游标放置于当前位置，逆向偏移2个字节
-			//读完一个字节后游标会自动正向偏移一个字节
-			file.Read(char)
-			if char[0] == '\r' {
-				offset-- //windows跳过'\r'
+			//防止偏移量-2后越界
+			if fileSize-(-offset) >= 1 {
+				//判断文件类型为unix(LF)还是windows(CRLF)
+				file.Seek(-2, io.SeekCurrent) //io.SeekCurrent表示游标放置于当前位置，逆向偏移2个字节
+				//读完一个字节后游标会自动正向偏移一个字节
+				file.Read(char)
+				if char[0] == '\r' {
+					offset-- //windows跳过'\r'
+				}
 			}
 			lineNum-- //到此读取完一行
 			buff = append(buff, lineStr)
@@ -198,8 +201,9 @@ func ReadStartWithLastLine(filename string, n int) (string, error) {
 		}
 		offset--
 	}
-	if lineStr == "" {
-		return "", io.EOF
+	//到此文件已经从尾部读到头部
+	if lineCount == n-1 {
+		return lineStr, nil
 	}
-	return lineStr, nil
+	return "", io.EOF
 }
