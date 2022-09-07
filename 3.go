@@ -241,3 +241,13 @@ func CreateShortcut(filename, dir string) error {
 	//创建快捷方式
 	return os.Symlink(absPath, shortcut)
 }
+
+//判断当前进程是否以管理员身份运行
+func IsAdmin() bool {
+	file, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	return true
+}
