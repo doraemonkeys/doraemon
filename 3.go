@@ -222,3 +222,22 @@ func ReadStartWithLastLine(filename string, n int) (string, error) {
 	}
 	return "", io.EOF
 }
+
+//给目录或文件创建快捷方式(filename可以为绝对路径也可以为相对路径,dir必须是绝对路径)
+func CreateShortcut(filename, dir string) error {
+	//获取文件的绝对路径
+	absPath, err := filepath.Abs(filename)
+	if err != nil {
+		return err
+	}
+	//获取文件的名称,(最后一个'\'后的内容)Base returns the last element of path
+	name := filepath.Base(filename)
+	//获取文件的扩展名
+	ext := filepath.Ext(filename)
+	//获取文件的名称(不包含扩展名)
+	name = strings.TrimSuffix(name, ext)
+	//拼接快捷方式的绝对路径
+	shortcut := filepath.Join(dir, name+".lnk")
+	//创建快捷方式
+	return os.Symlink(absPath, shortcut)
+}
