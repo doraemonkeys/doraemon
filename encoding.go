@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"regexp"
+	"strconv"
 
 	"github.com/axgle/mahonia"
 	"golang.org/x/net/html/charset"
@@ -53,4 +55,22 @@ func TransformCoding(rd io.Reader, contentType string) (*transform.Reader, error
 		return nil, err
 	}
 	return transform.NewReader(bodyReader, e.NewDecoder()), nil
+}
+
+//对Unicode进行转码
+func UnicodeStrToUtf8(str string) string {
+	reg := regexp.MustCompile(`\\u[0-9a-fA-F]{4}`)
+	return reg.ReplaceAllStringFunc(str, func(s string) string {
+		r, _ := strconv.ParseInt(s[2:], 16, 32)
+		return string(rune(r))
+	})
+}
+
+//对Unicode进行转码
+func UnicodeToUtf8(str []byte) []byte {
+	reg := regexp.MustCompile(`\\u([0-9a-fA-F]{4})`)
+	return reg.ReplaceAllFunc(str, func(s []byte) []byte {
+		r, _ := strconv.ParseInt(string(s[2:]), 16, 32)
+		return []byte(string(rune(r)))
+	})
 }
