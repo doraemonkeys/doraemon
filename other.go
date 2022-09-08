@@ -3,6 +3,7 @@ package doraemon
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/fatih/color"
@@ -31,6 +32,16 @@ func ColorPrint(attributes []color.Attribute, strs ...string) {
 //获取昨天的日期
 func GetYesterday() time.Time {
 	return time.Now().AddDate(0, 0, -1)
+}
+
+//判断当前进程是否以管理员身份运行
+func IsAdmin() bool {
+	file, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	return true
 }
 
 //随机获取user-agent,(含移动端)
