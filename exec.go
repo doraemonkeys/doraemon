@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//不等待执行完毕就返回,如果params中有转义字符需要自己处理,
+//不等待执行完毕就返回(可能不靠谱),如果params中有转义字符需要自己处理,
 //dir为cmd命令执行的位置,传入空值则为默认路径。
 func Cmd_NoWait(dir string, params []string) (cmd *exec.Cmd, err error) {
 	cmd = exec.Command("cmd")
