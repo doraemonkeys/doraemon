@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -20,7 +20,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-//获取本机已保存的所有wifi
+// 获取本机已保存的所有wifi
 func GetSavedWifi() (string, error) {
 	cmd := exec.Command("netsh", "wlan", "show", "profiles")
 	out, err := cmd.Output()
@@ -32,7 +32,7 @@ func GetSavedWifi() (string, error) {
 	return string(out), nil
 }
 
-//获取当前wifi名称
+// 获取当前wifi名称
 func GetWifiName() (string, error) {
 	cmd := exec.Command("netsh", "wlan", "show", "interfaces")
 	out, err := cmd.Output()
@@ -49,7 +49,7 @@ func GetWifiName() (string, error) {
 	return string(match[1]), nil
 }
 
-//获取当前网络密码
+// 获取当前网络密码
 func GetWifiPassword(wifiname string) (string, error) {
 	cmd := exec.Command("netsh", "wlan", "show", "profile", wifiname, "key=clear")
 	out, err := cmd.Output()
@@ -66,7 +66,7 @@ func GetWifiPassword(wifiname string) (string, error) {
 	return string(match[1]), nil
 }
 
-//ping局域网内所有ip
+// ping局域网内所有ip
 func PingAll(srcIP string) error {
 	//检查ip是否合法
 	ip := net.ParseIP(srcIP)
@@ -104,9 +104,9 @@ func PingToUpdateARP(ip string) {
 	CmdNoOutput("", []string{"ping", "-l", "1", "-n", "1", "-w", "500", ip, "&", "exit"})
 }
 
-//获取局域网内所有主机IP与MAC地址(通过ping命令更新arp表,不包含自己),
-//通过LanIP获取局域网IP段,通过PingAll更新arp表。
-//返回map[ip]mac。
+// 获取局域网内所有主机IP与MAC地址(通过ping命令更新arp表,不包含自己),
+// 通过LanIP获取局域网IP段,通过PingAll更新arp表。
+// 返回map[ip]mac。
 func GetAllHosts(lanIP string) (map[string]string, error) {
 	err := PingAll(lanIP)
 	if err != nil {
@@ -139,7 +139,7 @@ func GetAllHosts(lanIP string) (map[string]string, error) {
 	return hosts, nil
 }
 
-//获取指定网卡的ipv4地址,如WLAN
+// 获取指定网卡的ipv4地址,如WLAN
 func GetIPv4ByInterfaceName(name string) (string, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
@@ -159,7 +159,7 @@ func GetIPv4ByInterfaceName(name string) (string, error) {
 	return "", errors.New("not found")
 }
 
-//获取指定网卡的ipv6地址，如WLAN
+// 获取指定网卡的ipv6地址，如WLAN
 func GetIPv6ByInterfaceName(name string) (string, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
@@ -186,7 +186,7 @@ func GetPublicIPV4() (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	content, _ := ioutil.ReadAll(resp.Body)
+	content, _ := io.ReadAll(resp.Body)
 	return strings.TrimSpace(string(content)), nil
 }
 
@@ -197,7 +197,7 @@ func GetPublicIPV6() (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	content, _ := ioutil.ReadAll(resp.Body)
+	content, _ := io.ReadAll(resp.Body)
 	return strings.TrimSpace(string(content)), nil
 }
 
@@ -207,7 +207,7 @@ func Get_client() (http.Client, error) {
 	return http.Client{Jar: jar}, nil
 }
 
-//获取指定网卡的ipv6子网掩码
+// 获取指定网卡的ipv6子网掩码
 func GetIpv6MaskByInterfaceName(name string) (string, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
@@ -227,7 +227,7 @@ func GetIpv6MaskByInterfaceName(name string) (string, error) {
 	return "", errors.New("not found")
 }
 
-//获取指定网卡的ipv4子网掩码
+// 获取指定网卡的ipv4子网掩码
 func GetIpv4MaskByInterfaceName(name string) (string, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
@@ -247,7 +247,7 @@ func GetIpv4MaskByInterfaceName(name string) (string, error) {
 	return "", errors.New("not found")
 }
 
-//转换十六进制的子网掩码为点分十进制(请确保传入的是十六进制的子网掩码)
+// 转换十六进制的子网掩码为点分十进制(请确保传入的是十六进制的子网掩码)
 func HexMaskToDotMask(hexMask string) string {
 	var dotMask string
 	for i := 0; i < len(hexMask); i += 2 {
@@ -257,7 +257,7 @@ func HexMaskToDotMask(hexMask string) string {
 	return dotMask[:len(dotMask)-1]
 }
 
-//转换十六进制的子网掩码为冒号分隔的十六进制(请确保传入的是十六进制的子网掩码)
+// 转换十六进制的子网掩码为冒号分隔的十六进制(请确保传入的是十六进制的子网掩码)
 func HexMaskToColonMask(hexMask string) string {
 	var colonMask string
 	for i := 0; i < len(hexMask); i += 4 {
@@ -266,7 +266,7 @@ func HexMaskToColonMask(hexMask string) string {
 	return colonMask[:len(colonMask)-1]
 }
 
-//获取本机真实的无线局域网的mac地址
+// 获取本机真实的无线局域网的mac地址
 func GetMyWLANMAC() (string, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
@@ -280,7 +280,7 @@ func GetMyWLANMAC() (string, error) {
 	return "", errors.New("not found")
 }
 
-//通过ipconfig命令获取WLAN的默认网关
+// 通过ipconfig命令获取WLAN的默认网关
 func GetWLANDefaultGateway() (string, error) {
 	cmd := exec.Command("ipconfig")
 	out, err := cmd.Output()
