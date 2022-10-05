@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-//获取当前文件夹下所有文件
+// 获取当前文件夹下所有文件
 func GetFiles(path string) []string {
 	files := make([]string, 0)
 	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
@@ -29,7 +29,7 @@ func GetFiles(path string) []string {
 	return files
 }
 
-//获取当前文件夹下所有文件夹
+// 获取当前文件夹下所有文件夹
 func GetDirs(path string) []string {
 	dirs := make([]string, 0)
 	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
@@ -45,7 +45,7 @@ func GetDirs(path string) []string {
 	return dirs
 }
 
-//获取当前文件夹下所有文件和文件夹
+// 获取当前文件夹下所有文件和文件夹
 func GetAll(path string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
@@ -58,30 +58,45 @@ func GetAll(path string) ([]string, error) {
 	return files, err
 }
 
-//获取当前程序的执行路径(包含可执行文件名称)
-//C:\Users\*\AppData\Local\Temp\*\exe\main.exe
-//(读取命令行的方式，可能得不到想要的路径)
-func GetCurrentPath() (string, error) {
-	//LookPath 在 PATH 环境变量命名的目录中搜索可执行文件。如果文件包含斜杠，则直接尝试，不参考 PATH。
-	s, err := exec.LookPath(os.Args[0])
+// 获取当前程序的执行路径(包含可执行文件名称)
+// C:\Users\*\AppData\Local\Temp\*\exe\main.exe 或 .\main.exe
+// (读取命令参数的方式)
+func GetExecutionPath2() (string, error) {
+	//LookPath 在 PATH 环境变量命名的目录中搜索可执行文件。如果文件包含斜杠，则直接尝试(返回相对路径)，不参考 PATH。
+	path, err := exec.LookPath(os.Args[0])
+	if errors.Is(err, exec.ErrDot) {
+		// 说明是当前目录,参数是相对路径且不包含斜杠(./或.\)
+		return os.Executable()
+	}
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(s), nil
+	//Abs 返回路径的绝对表示形式。
+	return filepath.Abs(path)
 }
 
-//获取当前程序源代码的详细路径
-//D:/Go/workspace/port/network_learn/server/server.go
-func CurrentFilePath() (string, error) {
+// 获取当前程序的执行环境路径(不包含可执行文件名称)
+func GetCurrentPath() (string, error) {
+	return os.Getwd()
+}
+
+// 获取当前程序所在的绝对路径+文件名
+func GetExecutionPath() (string, error) {
+	return os.Executable()
+}
+
+// 获取当前程序源代码的详细路径
+// D:/Go/workspace/port/network_learn/server/server.go
+func ExecutionFilePath() (string, error) {
 	//报告当前go程序调用栈所执行的函数的文件和行号信息
 	_, file, _, ok := runtime.Caller(1)
 	if !ok {
-		return "", errors.New("can not get current file info")
+		return "", errors.New("can not get file info")
 	}
 	return file, nil
 }
 
-//获取文件的SHA1值(字母小写)
+// 获取文件的SHA1值(字母小写)
 func GetFileSha1(filename string) (string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -95,7 +110,7 @@ func GetFileSha1(filename string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-//获取文件md5(字母小写)
+// 获取文件md5(字母小写)
 func GetFileMd5(filename string) (string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -114,10 +129,10 @@ func GetFileMd5(filename string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-//从文件末尾按行读取文件。
-//name:文件路径 lineNum:读取行数(超过文件行数则读取全文)。
-//最后一行为空也算读取了一行,会返回此行为空串,若全是空格也会原样返回。
-//返回的每一行都不包含换行符号。
+// 从文件末尾按行读取文件。
+// name:文件路径 lineNum:读取行数(超过文件行数则读取全文)。
+// 最后一行为空也算读取了一行,会返回此行为空串,若全是空格也会原样返回。
+// 返回的每一行都不包含换行符号。
 func ReverseRead(name string, lineNum uint) ([]string, error) {
 	//打开文件
 	file, err := os.Open(name)
@@ -169,8 +184,8 @@ func ReverseRead(name string, lineNum uint) ([]string, error) {
 	return buff, nil
 }
 
-//读取倒数第n行(n从1开始),
-//若n大于文件行数则返回错误io.EOF。
+// 读取倒数第n行(n从1开始),
+// 若n大于文件行数则返回错误io.EOF。
 func ReadStartWithLastLine(filename string, n int) (string, error) {
 	//打开文件
 	file, err := os.Open(filename)
@@ -223,7 +238,7 @@ func ReadStartWithLastLine(filename string, n int) (string, error) {
 	return "", io.EOF
 }
 
-//给目录或文件创建快捷方式(filename可以为绝对路径也可以为相对路径,dir必须是绝对路径)
+// 给目录或文件创建快捷方式(filename可以为绝对路径也可以为相对路径,dir必须是绝对路径)
 func CreateShortcut(filename, dir string) error {
 	//获取文件的绝对路径
 	absPath, err := filepath.Abs(filename)
