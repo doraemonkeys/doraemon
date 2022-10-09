@@ -1,6 +1,7 @@
 package doraemon
 
 import (
+	"archive/zip"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
@@ -255,4 +256,73 @@ func CreateShortcut(filename, dir string) error {
 	shortcut := filepath.Join(dir, name+".lnk")
 	//创建快捷方式
 	return os.Symlink(absPath, shortcut)
+}
+
+// Compress compresses the file to the zip file.
+func Compress(file []string, zipFile string) error {
+	//创建一个新的zip文件
+	fw, err := os.Create(zipFile)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+	//创建一个新的zip writer
+	zw := zip.NewWriter(fw)
+	defer zw.Close()
+	//遍历所有文件
+	for _, f := range file {
+		//打开文件
+		fr, err := os.Open(f)
+		if err != nil {
+			return err
+		}
+		defer fr.Close()
+		//创建一个zip文件信息头
+		fw, err := zw.Create(f)
+		if err != nil {
+
+			return err
+		}
+		//将文件写入zip文件
+		_, err = io.Copy(fw, fr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// 解压
+func UnCompress(zipFile, dest string) error {
+	//若目标文件夹不存在，则创建
+	if _, err := os.Stat(dest); os.IsNotExist(err) {
+		os.MkdirAll(dest, os.ModePerm)
+	}
+	//打开zip文件
+	fr, err := zip.OpenReader(zipFile)
+	if err != nil {
+		return err
+	}
+	defer fr.Close()
+	//遍历所有文件
+	for _, f := range fr.File {
+		//打开文件
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+		//创建文件
+		fw, err := os.Create(dest + "/" + f.Name)
+		if err != nil {
+			return err
+		}
+		defer fw.Close()
+		//将文件写入磁盘
+		_, err = io.Copy(fw, rc)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
