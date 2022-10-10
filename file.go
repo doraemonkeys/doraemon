@@ -130,6 +130,13 @@ func GetFileMd5(filename string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+// 计算md5
+func Md5(content []byte) string {
+	hash := md5.New()
+	hash.Write(content)
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
 // 从文件末尾按行读取文件。
 // name:文件路径 lineNum:读取行数(超过文件行数则读取全文)。
 // 最后一行为空也算读取了一行,会返回此行为空串,若全是空格也会原样返回。
