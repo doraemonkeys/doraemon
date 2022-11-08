@@ -59,6 +59,11 @@ func GetAll(path string) ([]string, error) {
 	return files, err
 }
 
+func FileIsExist(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil || os.IsExist(err)
+}
+
 // 获取当前程序的执行路径(包含可执行文件名称)
 // C:\Users\*\AppData\Local\Temp\*\exe\main.exe 或 .\main.exe
 // (读取命令参数的方式)
