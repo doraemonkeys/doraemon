@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -105,9 +106,179 @@ func GetAllNames(path string) ([]string, error) {
 	return all, nil
 }
 
-func FileIsExist(filename string) bool {
-	_, err := os.Stat(filename)
+// 文件或文件夹是否存在
+func FileOrDirIsExist(path string) bool {
+	_, err := os.Stat(path)
 	return err == nil || os.IsExist(err)
+}
+
+// 是否为文件夹
+func IsDir(path string) (is bool, exist bool, err error) {
+	Info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, false, nil
+		}
+		return false, true, err
+	}
+	return Info.IsDir(), true, nil
+}
+
+// 是否为文件
+func IsFile(path string) (is bool, exist bool, err error) {
+	Info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, false, nil
+		}
+		return false, true, err
+	}
+	return !Info.IsDir(), true, nil
+}
+
+// 复制文件到指定目录
+//
+// overwrite为true时，如果目标文件存在则覆盖，
+// overwrite为false时，如果目标文件存在则返回错误。
+// dst必须是一个存在的文件夹，否则返回错误。
+// scr为文件的绝对或相对路径(包含文件名)。
+func CopyFile(src, dst string, overwrite bool) error {
+	//判断dst是否存在，是否为文件夹
+	isDir, exist, err := IsDir(dst)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("%s is not exist", dst)
+	}
+	if !isDir {
+		return fmt.Errorf("%s is not a directory", dst)
+	}
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	target := filepath.Join(dst, filepath.Base(src))
+	if !overwrite && FileOrDirIsExist(target) {
+		return fmt.Errorf("%s is exist", target)
+	}
+	dstFile, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 移动文件或文件夹到指定目录
+//
+// overwrite为true时，如果目标文件存在则覆盖(dst中的目标文件或文件夹会被直接删除)，
+// overwrite为false时，如果目标文件存在则返回错误。
+// dst必须是一个存在的文件夹，否则返回错误。
+// scr为的绝对或相对路径。
+func MoveFileOrDir(src, dst string, overwrite bool) error {
+	//判断dst是否存在，是否为文件夹
+	isDir, exist, err := IsDir(dst)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("%s is not exist", dst)
+	}
+	if !isDir {
+		return fmt.Errorf("%s is not a directory", dst)
+	}
+	//判断src是否存在
+	if !FileOrDirIsExist(src) {
+		return fmt.Errorf("%s is not exist", src)
+	}
+	target := filepath.Join(dst, filepath.Base(src))
+	if FileOrDirIsExist(target) {
+		if !overwrite {
+			return fmt.Errorf("%s is exist", target)
+		}
+		err := os.RemoveAll(target)
+		if err != nil {
+			return err
+		}
+	}
+	err = os.Rename(src, target)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 复制文件夹到指定目录
+//
+// overwrite为true时，如果目标文件夹存在名字相同的文件则覆盖，
+// overwrite为false时，如果目标文件存在则返回错误。
+// dst,scr都必须是一个存在的文件夹，否则返回错误。
+func CopyDir(src, dst string, overwrite bool) error {
+	//判断dst是否存在，是否为文件夹
+	isDir, exist, err := IsDir(dst)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("%s is not exist", dst)
+	}
+	if !isDir {
+		return fmt.Errorf("%s is not a directory", dst)
+	}
+	dst = filepath.Join(dst, filepath.Base(src)) //dst更新为目标文件夹
+	if FileOrDirIsExist(dst) {
+		if !overwrite {
+			return fmt.Errorf("%s is exist", dst)
+		}
+	} else {
+		err = os.Mkdir(dst, 0666)
+		if err != nil {
+			return err
+		}
+	}
+	//判断src是否存在，是否为文件夹
+	isDir, exist, err = IsDir(src)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("%s is not exist", src)
+	}
+	if !isDir {
+		return fmt.Errorf("%s is not a directory", src)
+	}
+	//获取src下所有文件
+	srcFiles, err := GetFileNmaes(src)
+	if err != nil {
+		return err
+	}
+	//复制文件
+	for _, v := range srcFiles {
+		srcFile := filepath.Join(src, v)
+		err := CopyFile(srcFile, dst, overwrite)
+		if err != nil {
+			return err
+		}
+	}
+	//获取src下所有文件夹
+	srcDirNames, err := GetDirNames(src)
+	if err != nil {
+		return err
+	}
+	for _, v := range srcDirNames {
+		srcDir := filepath.Join(src, v)
+		err = CopyDir(srcDir, dst, overwrite)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // 获取当前程序的执行路径(包含可执行文件名称)
