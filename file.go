@@ -14,10 +14,11 @@ import (
 	"strings"
 )
 
-// 获取当前文件夹下所有文件
-func GetFiles(path string) []string {
+// 递归获取path下所有文件(包含子文件夹中的文件)。
+// path决定返回的文件路径是绝对路径还是相对路径。
+func GetFiles(path string) ([]string, error) {
 	files := make([]string, 0)
-	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return err
 		}
@@ -27,13 +28,14 @@ func GetFiles(path string) []string {
 		files = append(files, path)
 		return nil
 	})
-	return files
+	return files, err
 }
 
-// 获取当前文件夹下所有文件夹
-func GetDirs(path string) []string {
+// 递归获取path下所有文件夹(包含子文件夹)
+// path决定返回的文件路径是绝对路径还是相对路径。
+func GetDirs(path string) ([]string, error) {
 	dirs := make([]string, 0)
-	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return err
 		}
@@ -43,10 +45,11 @@ func GetDirs(path string) []string {
 		dirs = append(dirs, path)
 		return nil
 	})
-	return dirs
+	return dirs, err
 }
 
-// 获取当前文件夹下所有文件和文件夹
+// 递归获取path下所有文件和文件夹
+// path决定返回的文件路径是绝对路径还是相对路径。
 func GetAll(path string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
@@ -57,6 +60,49 @@ func GetAll(path string) ([]string, error) {
 		return nil
 	})
 	return files, err
+}
+
+// 获取path下所有文件名称(含后缀)
+func GetFileNmaes(path string) ([]string, error) {
+	DirEntry, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, v := range DirEntry {
+		if !v.IsDir() {
+			files = append(files, v.Name())
+		}
+	}
+	return files, nil
+}
+
+// 获取path路径下的文件夹名称
+func GetDirNames(path string) ([]string, error) {
+	DirEntry, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var dirs []string
+	for _, v := range DirEntry {
+		if v.IsDir() {
+			dirs = append(dirs, v.Name())
+		}
+	}
+	return dirs, nil
+}
+
+// 获取path路径下的文件(含后缀)和文件夹名称
+func GetAllNames(path string) ([]string, error) {
+	DirEntry, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var all []string
+	for _, v := range DirEntry {
+		all = append(all, v.Name())
+	}
+	return all, nil
 }
 
 func FileIsExist(filename string) bool {
