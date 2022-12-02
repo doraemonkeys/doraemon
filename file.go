@@ -126,6 +126,9 @@ func IsDir(path string) (is bool, exist bool, err error) {
 
 // 是否为文件
 func IsFile(path string) (is bool, exist bool, err error) {
+	if path[len(path)-1] == '/' || path[len(path)-1] == '\\' {
+		path = path[:len(path)-1] //去除最后一个路径分隔符
+	}
 	Info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -143,31 +146,29 @@ func IsFile(path string) (is bool, exist bool, err error) {
 // dst必须是一个存在的文件夹，否则返回错误。
 // scr为文件的绝对或相对路径(包含文件名)。
 func CopyFile(src, dst string, overwrite bool) error {
-	//判断dst是否存在，是否为文件夹
-	isDir, exist, err := IsDir(dst)
-	if err != nil {
-		return err
+	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
+		dst += `\` // 保证dst是文件夹
 	}
-	if !exist {
-		return fmt.Errorf("%s is not exist", dst)
-	}
-	if !isDir {
-		return fmt.Errorf("%s is not a directory", dst)
-	}
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
 	target := filepath.Join(dst, filepath.Base(src))
 	if !overwrite && FileOrDirIsExist(target) {
 		return fmt.Errorf("%s is exist", target)
 	}
 	dstFile, err := os.Create(target)
 	if err != nil {
+		is, _, _ := IsFile(dst)
+		if is {
+			return fmt.Errorf("%s is not a folder", dst[:len(dst)-1])
+		}
 		return err
 	}
 	defer dstFile.Close()
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
 		return err
@@ -182,16 +183,8 @@ func CopyFile(src, dst string, overwrite bool) error {
 // dst必须是一个存在的文件夹，否则返回错误。
 // scr为的绝对或相对路径。
 func MoveFileOrDir(src, dst string, overwrite bool) error {
-	//判断dst是否存在，是否为文件夹
-	isDir, exist, err := IsDir(dst)
-	if err != nil {
-		return err
-	}
-	if !exist {
-		return fmt.Errorf("%s is not exist", dst)
-	}
-	if !isDir {
-		return fmt.Errorf("%s is not a directory", dst)
+	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
+		dst += `\`
 	}
 	//判断src是否存在
 	if !FileOrDirIsExist(src) {
@@ -207,7 +200,7 @@ func MoveFileOrDir(src, dst string, overwrite bool) error {
 			return err
 		}
 	}
-	err = os.Rename(src, target)
+	err := os.Rename(src, target)
 	if err != nil {
 		return err
 	}
@@ -220,16 +213,11 @@ func MoveFileOrDir(src, dst string, overwrite bool) error {
 // overwrite为false时，如果目标文件存在则返回错误。
 // dst,scr都必须是一个存在的文件夹，否则返回错误。
 func CopyDir(src, dst string, overwrite bool) error {
-	//判断dst是否存在，是否为文件夹
-	isDir, exist, err := IsDir(dst)
-	if err != nil {
-		return err
+	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
+		dst += `\` //添加路径分隔符
 	}
-	if !exist {
-		return fmt.Errorf("%s is not exist", dst)
-	}
-	if !isDir {
-		return fmt.Errorf("%s is not a directory", dst)
+	if src[len(src)-1:] != `\` && src[len(src)-1:] != `/` {
+		src += `\` //添加路径分隔符
 	}
 	dst = filepath.Join(dst, filepath.Base(src)) //dst更新为目标文件夹
 	if FileOrDirIsExist(dst) {
@@ -237,21 +225,10 @@ func CopyDir(src, dst string, overwrite bool) error {
 			return fmt.Errorf("%s is exist", dst)
 		}
 	} else {
-		err = os.Mkdir(dst, 0666)
+		err := os.Mkdir(dst, 0666)
 		if err != nil {
 			return err
 		}
-	}
-	//判断src是否存在，是否为文件夹
-	isDir, exist, err = IsDir(src)
-	if err != nil {
-		return err
-	}
-	if !exist {
-		return fmt.Errorf("%s is not exist", src)
-	}
-	if !isDir {
-		return fmt.Errorf("%s is not a directory", src)
 	}
 	//获取src下所有文件
 	srcFiles, err := GetFileNmaes(src)
