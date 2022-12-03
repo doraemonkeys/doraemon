@@ -203,6 +203,10 @@ func GetPublicIPV6() (string, error) {
 
 // 初始化client
 func Get_client() (http.Client, error) {
+	// PublicSuffixList 是一种用来指定哪些后缀是公共后缀的列表。
+	// 在 cookie 技术中，公共后缀是指可以被许多不同域名所拥有的后缀。
+	// 例如，如果 .com 是公共后缀，那么 example.com 和 mywebsite.com 都可以设置和读取 .com 后缀的 cookie。
+	// PublicSuffixList 是用来确保浏览器在设置和读取 cookie 时，使用的是正确的公共后缀。
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	return http.Client{Jar: jar}, nil
 }
