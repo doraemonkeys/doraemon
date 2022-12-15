@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
 	github.com/fatih/color v1.13.0
+	github.com/prestonTao/upnp v0.0.0-20220429011949-f141651daac6
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234
 	golang.org/x/text v0.3.7
 )

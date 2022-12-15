@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/axgle/mahonia"
+	"github.com/prestonTao/upnp"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -107,6 +108,8 @@ func PingToUpdateARP(ip string) {
 // 获取局域网内所有主机IP与MAC地址(通过ping命令更新arp表,不包含自己),
 // 通过LanIP获取局域网IP段,通过PingAll更新arp表。
 // 返回map[ip]mac。
+// 更好的通用方法https://studygolang.com/articles/1202
+// https://github.com/mnhkahn/go_code/blob/master/fing.go
 func GetAllHosts(lanIP string) (map[string]string, error) {
 	err := PingAll(lanIP)
 	if err != nil {
@@ -139,6 +142,39 @@ func GetAllHosts(lanIP string) (map[string]string, error) {
 	return hosts, nil
 }
 
+// 获取网关地址
+// 还可以通过构建ICMP报文实现路由追踪(traceroute)，记录访问某个网站经过的路径，那么第一条路径就是访问路由器
+func GetGateway() (string, error) {
+	upnpMan := new(upnp.Upnp)
+	err := upnpMan.SearchGateway()
+	if err != nil {
+		return "", err
+	} else {
+		return upnpMan.Gateway.Host[0:strings.LastIndex(upnpMan.Gateway.Host, ":")], nil
+	}
+}
+
+// 获取路由器的外部IP，需要路由器支持UPNP协议。
+func GetGatewayOutsideIP() (string, error) {
+	upnpMan := new(upnp.Upnp)
+	err := upnpMan.ExternalIPAddr()
+	if err != nil {
+		return "", err
+	} else {
+		return upnpMan.GatewayOutsideIP, nil
+	}
+}
+
+func GetLocalIP() (string, error) {
+	upnpMan := new(upnp.Upnp)
+	err := upnpMan.SearchGateway()
+	if err != nil {
+		return "", err
+	} else {
+		return upnpMan.LocalHost, nil
+	}
+}
+
 // 获取指定网卡的ipv4地址,如WLAN
 func GetIPv4ByInterfaceName(name string) (string, error) {
 	inter, err := net.InterfaceByName(name)
@@ -156,7 +192,7 @@ func GetIPv4ByInterfaceName(name string) (string, error) {
 			}
 		}
 	}
-	return "", errors.New("not found")
+	return "", errors.New(name + " interface not found")
 }
 
 // 获取指定网卡的ipv6地址，如WLAN
@@ -176,7 +212,7 @@ func GetIPv6ByInterfaceName(name string) (string, error) {
 			}
 		}
 	}
-	return "", errors.New("not found")
+	return "", errors.New(name + " interface not found")
 }
 
 func GetPublicIPV4() (string, error) {
