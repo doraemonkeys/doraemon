@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"math"
 	"math/big"
 	"time"
 )
@@ -221,4 +222,13 @@ func RSA_DecryptOAEP(cipherText []byte, privateKey []byte, label []byte) ([]byte
 	//对密文进行解密
 	//plainText, _ := rsa.DecryptPKCS1v15(rand.Reader, privateKey, cipherText)
 	return rsa.DecryptOAEP(sha256.New(), rand.Reader, rsaPrivateKey, cipherText, label)
+}
+
+// GenerateRandomSeed 生成随机种子
+func GenerateRandomSeed() int64 {
+	// Generate a random number between 0 and 2^63 - 1
+	// max := new(big.Int).Exp(big.NewInt(2), big.NewInt(63), nil)
+	// max.Sub(max, big.NewInt(1))
+	n, _ := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	return n.Int64()
 }
