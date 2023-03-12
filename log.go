@@ -293,11 +293,11 @@ func (hook *logHook) updateNewLogPathAndFile() error {
 	return nil
 }
 
-func InitGlobalLog(config LogConfig) error {
+func InitGlobalLogger(config LogConfig) error {
 	return initlLog(logrus.StandardLogger(), config)
 }
 
-func NewLog(config LogConfig) (*logrus.Logger, error) {
+func NewLogger(config LogConfig) (*logrus.Logger, error) {
 	logger := logrus.New()
 	err := initlLog(logger, config)
 	if err != nil {
