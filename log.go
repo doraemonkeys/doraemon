@@ -19,8 +19,10 @@ import (
 type LogConfig struct {
 	//日志路径(可以为空)
 	LogPath string
-	//日志文件名后缀(不包含日期和.log，可以为空)
+	//日志文件名后缀
 	LogFileNameSuffix string
+	//默认日志文件名(若按日期或大小分割日志，此项无效)
+	DefaultLogName string
 	//是否分离错误日志(Error级别以上)
 	ErrSeparate bool
 	//如果分离错误日志，普通日志文件是否仍然包含错误日志
@@ -229,53 +231,51 @@ func (hook *logHook) updateNewLogPathAndFile() error {
 
 	//更新日期(不多余，split_size也会用到)
 	hook.FileDate = time.Now().In(hook.LogConfig.TimeLocation).Format(hook.dateFmt)
-	//按大小分割时，文件名可能会重复
-	var tempFileDate string = hook.FileDate
+
+	var tempFileName string
+	//默认情况
+	if !hook.LogConfig.DateSplit && hook.LogConfig.MaxLogSize == 0 {
+		tempFileName = hook.LogConfig.DefaultLogName
+	}
+	//按大小分割
 	if hook.LogConfig.MaxLogSize > 0 {
+		//按大小分割时，文件名可能会重复
 		//纳秒后4位
-		tempFileDate = fmt.Sprintf("%s_%d", hook.FileDate, (time.Now().UnixNano()%1000000)/100)
+		tempFileName = fmt.Sprintf("%s_%d", hook.FileDate, (time.Now().UnixNano()%1000000)/100)
+	}
+	//按日期分割
+	if hook.LogConfig.DateSplit {
+		tempFileName = hook.FileDate
 	}
 
-	var newFileName string
 	if !hook.LogConfig.ErrSeparate {
-		if hook.LogConfig.LogFileNameSuffix == "" {
-			newFileName = tempFileDate + hook.LogConfig.LogExt
-		} else {
-			newFileName = tempFileDate + "_" + hook.LogConfig.LogFileNameSuffix + hook.LogConfig.LogExt
-		}
-		newFileName = makeFileNameLegal(newFileName)
-		newFileName = filepath.Join(hook.LogConfig.LogPath, newFileName)
-
-		file, err := os.OpenFile(newFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			return err
-		}
-		hook.OtherWriter = file
-		//更新日志大小
-		hook.LogSize, _ = file.Seek(0, io.SeekEnd)
-		return nil
+		return hook.openLogFile(tempFileName)
 	}
+	return hook.openTwoLogFile(tempFileName)
+}
 
+func (hook *logHook) openTwoLogFile(tempFileName string) error {
+	var errorFileName string
 	var commonFileName string
 	if hook.LogConfig.LogFileNameSuffix == "" {
-		newFileName = tempFileDate + "_" + "ERROR" + hook.LogConfig.LogExt
-		commonFileName = tempFileDate + hook.LogConfig.LogExt
+		errorFileName = tempFileName + "_" + "ERROR" + hook.LogConfig.LogExt
+		commonFileName = tempFileName + hook.LogConfig.LogExt
 	} else {
-		newFileName = tempFileDate + "_" + "ERROR" + "_" + hook.LogConfig.LogFileNameSuffix + hook.LogConfig.LogExt
-		commonFileName = tempFileDate + "_" + hook.LogConfig.LogFileNameSuffix + hook.LogConfig.LogExt
+		errorFileName = tempFileName + "_" + "ERROR" + "_" + hook.LogConfig.LogFileNameSuffix + hook.LogConfig.LogExt
+		commonFileName = tempFileName + "_" + hook.LogConfig.LogFileNameSuffix + hook.LogConfig.LogExt
 	}
-	newFileName = makeFileNameLegal(newFileName)
+	errorFileName = makeFileNameLegal(errorFileName)
 	commonFileName = makeFileNameLegal(commonFileName)
 
 	newPath := filepath.Join(hook.LogConfig.LogPath, hook.FileDate)
-	newFileName = filepath.Join(newPath, newFileName)
+	errorFileName = filepath.Join(newPath, errorFileName)
 	commonFileName = filepath.Join(newPath, commonFileName)
 	err := os.MkdirAll(newPath, 0777)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.OpenFile(newFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(errorFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}
@@ -289,14 +289,36 @@ func (hook *logHook) updateNewLogPathAndFile() error {
 	hook.OtherWriter = file2
 	tempSize, _ := file2.Seek(0, io.SeekEnd)
 	hook.LogSize += tempSize
-
 	return nil
 }
 
+func (hook *logHook) openLogFile(tempFileName string) error {
+	var newFileName string
+	if hook.LogConfig.LogFileNameSuffix == "" {
+		newFileName = tempFileName + hook.LogConfig.LogExt
+	} else {
+		newFileName = tempFileName + "_" + hook.LogConfig.LogFileNameSuffix + hook.LogConfig.LogExt
+	}
+	newFileName = makeFileNameLegal(newFileName)
+	newFileName = filepath.Join(hook.LogConfig.LogPath, newFileName)
+
+	file, err := os.OpenFile(newFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	hook.OtherWriter = file
+
+	//更新日志大小(文件为空时，返回0)
+	hook.LogSize, _ = file.Seek(0, io.SeekEnd)
+	return nil
+}
+
+// 默认 --loglevel=info
 func InitGlobalLogger(config LogConfig) error {
 	return initlLog(logrus.StandardLogger(), config)
 }
 
+// 默认 --loglevel=info
 func NewLogger(config LogConfig) (*logrus.Logger, error) {
 	logger := logrus.New()
 	err := initlLog(logger, config)
@@ -307,8 +329,7 @@ func NewLogger(config LogConfig) (*logrus.Logger, error) {
 }
 
 func initlLog(logger *logrus.Logger, config LogConfig) error {
-
-	var levelStr = flag.String("level", "", "log level(panic,fatal,error,warn,info,debug,trace)")
+	var levelStr = flag.String("loglevel", "", "log level(panic,fatal,error,warn,info,debug,trace)")
 	flag.Parse()
 	if *levelStr == "" {
 		*levelStr = config.LogLevel
@@ -355,6 +376,9 @@ func initlLog(logger *logrus.Logger, config LogConfig) error {
 	if config.TimeLocation == nil {
 		config.TimeLocation = time.Local
 	}
+	if config.DefaultLogName == "" {
+		config.DefaultLogName = "default"
+	}
 
 	hook := &logHook{}
 	hook.dateFmt = "2006_01_02"
@@ -374,6 +398,7 @@ func initlLog(logger *logrus.Logger, config LogConfig) error {
 }
 
 // panic,fatal,error,warn,info,debug,trace
+// 默认info
 func praseLevel(level string) logrus.Level {
 	level = strings.ToLower(level)
 	switch level {
