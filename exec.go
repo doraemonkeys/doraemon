@@ -23,6 +23,7 @@ func Cmd_NoWait(dir string, params []string) (cmd *exec.Cmd, err error) {
 			command += " "
 		}
 	}
+	command = Utf8ToGbk(command)
 	cmd_in.WriteString(command + "\n")
 	err = cmd.Start() //不等待执行完毕就返回
 	if err != nil {
@@ -54,6 +55,7 @@ func Cmd(dir string, params []string) (string, error) {
 			command += " "
 		}
 	}
+	command = Utf8ToGbk(command)
 	cmd_in.WriteString(command + "\n")
 	err := cmd.Run()
 	if err != nil {
@@ -80,6 +82,7 @@ func CmdNoOutput(dir string, params []string) error {
 			command += " "
 		}
 	}
+	command = Utf8ToGbk(command)
 	cmd_in.WriteString(command + "\n")
 	err := cmd.Run()
 	if err != nil {
