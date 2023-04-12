@@ -176,23 +176,23 @@ func GetLocalIP() (string, error) {
 }
 
 // 获取指定网卡的ipv4地址,如WLAN
-func GetIPv4ByInterfaceName(name string) (string, error) {
+func GetIPv4ByInterfaceName(name string) (net.IP, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	addrs, err := inter.Addrs()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	for _, addr := range addrs {
 		if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() {
 			if ip.IP.To4() != nil {
-				return ip.IP.String(), nil
+				return ip.IP, nil
 			}
 		}
 	}
-	return "", errors.New(name + " interface not found")
+	return nil, errors.New(name + " interface not found")
 }
 
 // 获取指定网卡的ipv6地址，如WLAN
@@ -248,43 +248,43 @@ func Get_client() (http.Client, error) {
 }
 
 // 获取指定网卡的ipv6子网掩码
-func GetIpv6MaskByInterfaceName(name string) (string, error) {
+func GetIpv6MaskByInterfaceName(name string) (net.IPMask, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	addrs, err := inter.Addrs()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	for _, addr := range addrs {
 		if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() {
 			if ip.IP.To16() != nil {
-				return ip.Mask.String(), nil
+				return ip.Mask, nil
 			}
 		}
 	}
-	return "", errors.New("not found")
+	return nil, errors.New("not found")
 }
 
 // 获取指定网卡的ipv4子网掩码
-func GetIpv4MaskByInterfaceName(name string) (string, error) {
+func GetIpv4MaskByInterfaceName(name string) (net.IPMask, error) {
 	inter, err := net.InterfaceByName(name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	addrs, err := inter.Addrs()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	for _, addr := range addrs {
 		if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() {
 			if ip.IP.To4() != nil {
-				return ip.Mask.String(), nil
+				return ip.Mask, nil
 			}
 		}
 	}
-	return "", errors.New("not found")
+	return nil, errors.New(name + " interface not found")
 }
 
 // 转换十六进制的子网掩码为点分十进制(请确保传入的是十六进制的子网掩码)
