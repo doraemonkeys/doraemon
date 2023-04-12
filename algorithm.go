@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-//十六进制转换为十进制
+// 十六进制转换为十进制
 func HexToInt(hex string) (int, error) {
 	if len(hex) > 2 {
 		if string(hex[0:2]) == "0x" || string(hex[0:2]) == "0X" {
@@ -30,7 +30,7 @@ func HexToInt(hex string) (int, error) {
 	return result, nil
 }
 
-//字符转整型
+// 字符转整型
 func CharToInt(c byte) int {
 	if c >= '0' && c <= '9' {
 		return int(c - '0')
@@ -42,20 +42,6 @@ func CharToInt(c byte) int {
 		return int(c-'A') + 10
 	}
 	return 0
-}
-
-//对传入的用户ID进行基本的验证(字符|长度等)
-func UserIDTest(userID string) bool {
-	if userID == "" {
-		return false
-	}
-	for _, v := range userID {
-		if v >= '0' && v <= '9' {
-			continue
-		}
-		return false
-	}
-	return true
 }
 
 // Str2uint64 将字符串转换为uint64 使用前请确保传入的字符串是合法的
@@ -77,30 +63,4 @@ func Str2int32(str string) int32 {
 	var res int32 = 0
 	fmt.Sscanf("str", "%d", &res)
 	return res
-}
-
-//对传入的密码进行基本的验证(字符|长度等)
-func PasswordTest(password string) bool {
-	if password == "" {
-		return false
-	}
-	for i := 0; i < len(password); i++ {
-		if password[i] == ' ' || password[i] == '\n' || password[i] == '\t' {
-			return false
-		}
-	}
-	return true
-}
-
-//对传入的用户名进行基本的验证(字符|长度等)
-func UserNameTest(userName string) bool {
-	if userName == "" {
-		return false
-	}
-	for i := 0; i < len(userName); i++ {
-		if userName[i] == ' ' || userName[i] == '\n' || userName[i] == '\t' {
-			return false
-		}
-	}
-	return true
 }
