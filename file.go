@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // 递归获取path下所有文件(包含子文件夹中的文件)。
@@ -161,8 +162,6 @@ func CopyFile(src, dst string, overwrite bool) error {
 		}
 		return err
 	}
-	defer dstFile.Close()
-
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -173,6 +172,10 @@ func CopyFile(src, dst string, overwrite bool) error {
 	if err != nil {
 		return err
 	}
+	dstFile.Close()
+	srcInfo, _ := srcFile.Stat()
+	os.Chmod(target, srcInfo.Mode())
+	os.Chtimes(target, time.Now(), srcInfo.ModTime())
 	return nil
 }
 
@@ -207,6 +210,27 @@ func MoveFileOrDir(src, dst string, overwrite bool) error {
 	return nil
 }
 
+// 复制文件或文件夹
+//
+// overwrite为true时，如果目标文件存在则覆盖(dst中的目标文件或文件夹会被直接删除)，
+// overwrite为false时，如果目标文件存在则返回错误。
+// scr,dst 为绝对或相对路径,dst必须是一个文件夹(可以不存在)。
+func CopyFileOrDir(src, dst string, overwrite bool) error {
+	dstIsFile, _, _ := IsFile(dst)
+	if dstIsFile {
+		return fmt.Errorf("%s is not a folder", dst)
+	}
+	err := os.MkdirAll(dst, 0755)
+	if err != nil {
+		return err
+	}
+	srcIsDir, _, _ := IsDir(src)
+	if srcIsDir {
+		return CopyDir(src, dst, overwrite)
+	}
+	return CopyFile(src, dst, overwrite)
+}
+
 // 复制文件夹到指定目录
 //
 // overwrite为true时，如果目标文件夹存在名字相同的文件则覆盖，
@@ -219,16 +243,17 @@ func CopyDir(src, dst string, overwrite bool) error {
 	if src[len(src)-1:] != `\` && src[len(src)-1:] != `/` {
 		src += `\` //添加路径分隔符
 	}
+	// dst加上原文件夹名字
 	dst = filepath.Join(dst, filepath.Base(src)) //dst更新为目标文件夹
-	if FileOrDirIsExist(dst) {
-		if !overwrite {
-			return fmt.Errorf("%s is exist", dst)
-		}
-	} else {
-		err := os.Mkdir(dst, 0666)
+	if !FileOrDirIsExist(dst) {
+		err := os.MkdirAll(dst, 0666)
 		if err != nil {
 			return err
 		}
+	}
+	// 排除dst，防止死循环(如果dst是src的子文件夹)
+	if IsChildDir(src, dst) {
+		return fmt.Errorf("\"%s\" is a child folder of \"%s\"", dst, src)
 	}
 	//获取src下所有文件
 	srcFiles, err := GetFileNmaes(src)
@@ -256,6 +281,20 @@ func CopyDir(src, dst string, overwrite bool) error {
 		}
 	}
 	return nil
+}
+
+// 判断child是否是parent的子文件夹(不存在的文件夹会返回false)
+func IsChildDir(parent, child string) bool {
+	// abs会统一路径分隔符为系统默认的分隔符
+	parentAbs, err := filepath.Abs(parent)
+	if err != nil {
+		return false
+	}
+	childAbs, err := filepath.Abs(child)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(childAbs, parentAbs)
 }
 
 // 获取当前程序的执行路径(包含可执行文件名称)
