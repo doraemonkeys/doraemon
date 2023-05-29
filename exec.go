@@ -1,7 +1,9 @@
 package doraemon
 
 import (
+	"bufio"
 	"bytes"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -89,4 +91,27 @@ func CmdNoOutput(dir string, params []string) error {
 		return err
 	}
 	return nil
+}
+
+func PressEnterKeyToContinue() {
+	input := bufio.NewReader(os.Stdin)
+	input.ReadString('\n')
+}
+
+// Press Enter Key to Continue with Timeout，超时则退出程序
+func PressEnterKeyToContinueWithTimeout(timeout time.Duration) {
+	ch := make(chan struct{}, 1)
+
+	go func() {
+		input := bufio.NewReader(os.Stdin)
+		input.ReadString('\n')
+		ch <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(timeout):
+		os.Exit(0)
+	case <-ch:
+		return
+	}
 }

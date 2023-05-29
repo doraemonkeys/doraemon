@@ -187,7 +187,7 @@ func CopyFile(src, dst string, overwrite bool) error {
 // scr为的绝对或相对路径。
 func MoveFileOrDir(src, dst string, overwrite bool) error {
 	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
-		dst += `\`
+		dst += string(os.PathSeparator)
 	}
 	//判断src是否存在
 	if !FileOrDirIsExist(src) {
@@ -238,10 +238,10 @@ func CopyFileOrDir(src, dst string, overwrite bool) error {
 // dst,scr都必须是一个存在的文件夹，否则返回错误。
 func CopyDir(src, dst string, overwrite bool) error {
 	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
-		dst += `\` //添加路径分隔符
+		dst += string(os.PathSeparator) //添加路径分隔符
 	}
 	if src[len(src)-1:] != `\` && src[len(src)-1:] != `/` {
-		src += `\` //添加路径分隔符
+		src += string(os.PathSeparator) //添加路径分隔符
 	}
 	// dst加上原文件夹名字
 	dst = filepath.Join(dst, filepath.Base(src)) //dst更新为目标文件夹
