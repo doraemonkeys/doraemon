@@ -2,9 +2,6 @@ package doraemon
 
 import (
 	"archive/zip"
-	"crypto/md5"
-	"crypto/sha1"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -333,46 +330,6 @@ func ExecutionFilePath() (string, error) {
 		return "", errors.New("can not get file info")
 	}
 	return file, nil
-}
-
-// 获取文件的SHA1值(字母小写)
-func GetFileSha1(filename string) (string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-	hash := sha1.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-// 获取文件md5(字母小写)
-func GetFileMd5(filename string) (string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-	hash := md5.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-	//将[]byte转成16进制的字符串表示
-	//var hex string = "48656c6c6f"//(hello)
-	//其中每两个字符对应于其ASCII值的十六进制表示,例如:
-	//0x48 0x65 0x6c 0x6c 0x6f = "Hello"
-	//fmt.Printf("%x\n", hash.Sum(nil))
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-// 计算md5
-func Md5(content []byte) string {
-	hash := md5.New()
-	hash.Write(content)
-	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // 从文件末尾按行读取文件。

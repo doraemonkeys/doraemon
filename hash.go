@@ -1,0 +1,75 @@
+package doraemon
+
+import (
+	"crypto/md5"
+	"crypto/sha1"
+	"encoding/hex"
+	"io"
+	"os"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+// BcryptHash 对传入字符串进行bcrypt哈希
+func BcryptHash(str string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(str), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+// BcryptMatch 对传入字符串和哈希字符串进行比对,str为明文
+func BcryptMatch(hash string, str string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(str))
+	return err == nil
+}
+
+// 获取文件的SHA1值(字母小写)
+func GetFileSha1(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	hash := sha1.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// GetSha1 获取[]byte的SHA1值(字母小写)
+func GetSha1(data []byte) (string, error) {
+	hash := sha1.New()
+	if _, err := hash.Write(data); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// 获取文件md5(字母小写)
+func GetFileMd5(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	//将[]byte转成16进制的字符串表示
+	//var hex string = "48656c6c6f"//(hello)
+	//其中每两个字符对应于其ASCII值的十六进制表示,例如:
+	//0x48 0x65 0x6c 0x6c 0x6f = "Hello"
+	//fmt.Printf("%x\n", hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// 计算md5
+func GatMd5(content []byte) string {
+	hash := md5.New()
+	hash.Write(content)
+	return hex.EncodeToString(hash.Sum(nil))
+}
