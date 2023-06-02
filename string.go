@@ -1,6 +1,8 @@
 package doraemon
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func StringToReadOnlyBytes(s string) []byte {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
@@ -11,4 +13,9 @@ func StringToReadOnlyBytes(s string) []byte {
 // otherwise, the string may be corrupted.
 func BytesToString(b []byte) string {
 	return unsafe.String(&b[0], len(b))
+}
+
+// StrLen统计字符串长度
+func StrLen(str string) int {
+	return len([]rune(str))
 }
