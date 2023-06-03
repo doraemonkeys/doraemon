@@ -48,28 +48,28 @@ func GetSha1(data []byte) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// 获取文件md5(字母小写)
-func GetFileMd5(filename string) (string, error) {
+// 获取文件md5
+func GetFileMd5(filename string) ([]byte, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer file.Close()
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
+		return nil, err
 	}
 	//将[]byte转成16进制的字符串表示
 	//var hex string = "48656c6c6f"//(hello)
 	//其中每两个字符对应于其ASCII值的十六进制表示,例如:
 	//0x48 0x65 0x6c 0x6c 0x6f = "Hello"
 	//fmt.Printf("%x\n", hash.Sum(nil))
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return hash.Sum(nil), nil
 }
 
 // 计算md5
-func GatMd5(content []byte) string {
+func GatMd5(content []byte) []byte {
 	hash := md5.New()
 	hash.Write(content)
-	return hex.EncodeToString(hash.Sum(nil))
+	return hash.Sum(nil)
 }
