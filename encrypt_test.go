@@ -148,7 +148,9 @@ func TestRSA_EncryptPKCS1v15(t *testing.T) {
 		name string
 		args args
 	}{
-		// TODO: Add test cases.
+		{"", args{[]byte("hello world")}},
+		{"", args{[]byte("hello world, 你好，世界")}},
+		{"", args{[]byte("gopher !!!")}},
 	}
 	privateKey, publicKey, err := GenerateRSAKey(2048)
 	if err != nil {
