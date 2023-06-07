@@ -1,6 +1,9 @@
 package doraemon
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestCbcAESCrypt(t *testing.T) {
 	type args struct {
@@ -48,6 +51,146 @@ func TestCbcAESCrypt(t *testing.T) {
 
 			if string(got2) != tt.args.plainText {
 				t.Errorf("CbcAESCrypt.Decrypt() got2 = %v, want %v", got2, tt.args.plainText)
+			}
+		})
+	}
+
+	// 加大原文长度
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				tt.args.plainText += tt.args.plainText
+			}
+			got, err := Crypter.Encrypt([]byte(tt.args.plainText))
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("CbcAESCrypt.Encrypt() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return
+			}
+
+			// 解密
+			got2, err := Crypter.Decrypt(got)
+			if err != nil {
+				t.Errorf("CbcAESCrypt.Decrypt() error = %v", err)
+				return
+			}
+
+			if string(got2) != tt.args.plainText {
+				t.Errorf("CbcAESCrypt.Decrypt() got2 = %v, want %v", got2, tt.args.plainText)
+			}
+		})
+	}
+}
+
+func TestRSA_EncryptOAEP(t *testing.T) {
+	type args struct {
+		plainText []byte
+		label     []byte
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{"", args{[]byte("hello world"), []byte("label")}},
+		{"", args{[]byte("hello world, 你好，世界"), []byte("label")}},
+	}
+	privateKey, publicKey, err := GenerateRSAKey(2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cipherText, err := RSA_EncryptOAEP(tt.args.plainText, publicKey, tt.args.label)
+			if err != nil {
+				t.Errorf("RSA_EncryptOAEP() error = %v", err)
+				return
+			}
+			got, err := RSA_DecryptOAEP(cipherText, privateKey, tt.args.label)
+			if err != nil {
+				t.Errorf("RSA_DecryptOAEP() error = %v", err)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.args.plainText) {
+				t.Errorf("RSA_DecryptOAEP() = %v, want %v", got, tt.args.plainText)
+			}
+		})
+	}
+	// 加大原文长度
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				tt.args.plainText = append(tt.args.plainText, tt.args.plainText...)
+			}
+			newPlainText := tt.args.plainText
+			cipherText, err := RSA_EncryptOAEP(newPlainText, publicKey, tt.args.label)
+			if err != nil {
+				t.Errorf("RSA_EncryptOAEP() error = %v", err)
+				return
+			}
+			got, err := RSA_DecryptOAEP(cipherText, privateKey, tt.args.label)
+			if err != nil {
+				t.Errorf("RSA_DecryptOAEP() error = %v", err)
+				return
+			}
+			if !reflect.DeepEqual(got, newPlainText) {
+				t.Errorf("RSA_DecryptOAEP() = %v, want %v", got, tt.args.plainText)
+			}
+		})
+	}
+}
+
+func TestRSA_EncryptPKCS1v15(t *testing.T) {
+	type args struct {
+		plainText []byte
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	privateKey, publicKey, err := GenerateRSAKey(2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cipherText, err := RSA_EncryptPKCS1v15(tt.args.plainText, publicKey)
+			if err != nil {
+				t.Errorf("RSA_EncryptPKCS1v15() error = %v", err)
+				return
+			}
+			got, err := RSA_DecryptPKCS1v15(cipherText, privateKey)
+			if err != nil {
+				t.Errorf("RSA_DecryptPKCS1v15() error = %v", err)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.args.plainText) {
+				t.Errorf("RSA_DecryptPKCS1v15() = %v, want %v", got, tt.args.plainText)
+			}
+		})
+	}
+
+	// 加大原文长度
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				tt.args.plainText = append(tt.args.plainText, tt.args.plainText...)
+			}
+			newPlainText := tt.args.plainText
+			cipherText, err := RSA_EncryptPKCS1v15(newPlainText, publicKey)
+			if err != nil {
+				t.Errorf("RSA_EncryptPKCS1v15() error = %v", err)
+				return
+			}
+			got, err := RSA_DecryptPKCS1v15(cipherText, privateKey)
+			if err != nil {
+				t.Errorf("RSA_DecryptPKCS1v15() error = %v", err)
+				return
+			}
+			if !reflect.DeepEqual(got, newPlainText) {
+				t.Errorf("RSA_DecryptPKCS1v15() = %v, want %v", got, tt.args.plainText)
 			}
 		})
 	}
