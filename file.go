@@ -15,7 +15,7 @@ import (
 
 // 递归获取path下所有文件(包含子文件夹中的文件)。
 // path决定返回的文件路径是绝对路径还是相对路径。
-func GetFiles(path string) ([]string, error) {
+func GetFileNamesRecursive(path string) ([]string, error) {
 	files := make([]string, 0)
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
@@ -32,16 +32,19 @@ func GetFiles(path string) ([]string, error) {
 
 // 递归获取path下所有文件夹(包含子文件夹)
 // path决定返回的文件路径是绝对路径还是相对路径。
-func GetDirs(path string) ([]string, error) {
+func GetFolderNamesRecursive(path string) ([]string, error) {
 	dirs := make([]string, 0)
-	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+	err := filepath.Walk(path, func(childPath string, f os.FileInfo, err error) error {
 		if f == nil {
 			return err
 		}
 		if !f.IsDir() {
 			return nil
 		}
-		dirs = append(dirs, path)
+		if childPath == path {
+			return nil
+		}
+		dirs = append(dirs, childPath)
 		return nil
 	})
 	return dirs, err
@@ -49,7 +52,7 @@ func GetDirs(path string) ([]string, error) {
 
 // 递归获取path下所有文件和文件夹
 // path决定返回的文件路径是绝对路径还是相对路径。
-func GetAll(path string) ([]string, error) {
+func GetAllNamesRecursive(path string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
@@ -62,7 +65,7 @@ func GetAll(path string) ([]string, error) {
 }
 
 // 获取path下所有文件名称(含后缀)
-func GetFileNmaes(path string) ([]string, error) {
+func GetFileNmaesInPath(path string) ([]string, error) {
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -77,7 +80,7 @@ func GetFileNmaes(path string) ([]string, error) {
 }
 
 // 获取path路径下的文件夹名称
-func GetDirNames(path string) ([]string, error) {
+func GetFolderNamesInPath(path string) ([]string, error) {
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -92,7 +95,7 @@ func GetDirNames(path string) ([]string, error) {
 }
 
 // 获取path路径下的文件(含后缀)和文件夹名称
-func GetAllNames(path string) ([]string, error) {
+func GetAllNamesInPath(path string) ([]string, error) {
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -253,7 +256,7 @@ func CopyDir(src, dst string, overwrite bool) error {
 		return fmt.Errorf("\"%s\" is a child folder of \"%s\"", dst, src)
 	}
 	//获取src下所有文件
-	srcFiles, err := GetFileNmaes(src)
+	srcFiles, err := GetFileNmaesInPath(src)
 	if err != nil {
 		return err
 	}
@@ -266,7 +269,7 @@ func CopyDir(src, dst string, overwrite bool) error {
 		}
 	}
 	//获取src下所有文件夹
-	srcDirNames, err := GetDirNames(src)
+	srcDirNames, err := GetFolderNamesInPath(src)
 	if err != nil {
 		return err
 	}
