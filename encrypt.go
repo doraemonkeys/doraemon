@@ -160,10 +160,21 @@ func RSA_EncryptPKCS1v15(plainText []byte, publicKey []byte) ([]byte, error) {
 	}
 	//类型断言
 	rsaPublicKey := publicKeyInterface.(*rsa.PublicKey)
+
 	//对明文进行加密
-	cipherText, err := rsa.EncryptPKCS1v15(rand.Reader, rsaPublicKey, plainText)
-	if err != nil {
-		return nil, err
+	msgLen := len(plainText)
+	step := rsaPublicKey.Size() - 11
+	var cipherText []byte
+	for i := 0; i < msgLen; i += step {
+		end := i + step
+		if end > msgLen {
+			end = msgLen
+		}
+		tmp, err := rsa.EncryptPKCS1v15(rand.Reader, rsaPublicKey, plainText[i:end])
+		if err != nil {
+			return nil, err
+		}
+		cipherText = append(cipherText, tmp...)
 	}
 	//返回密文
 	return cipherText, nil
@@ -190,10 +201,23 @@ func RSA_EncryptOAEP(plainText []byte, publicKey []byte, label []byte) ([]byte, 
 	}
 	//类型断言
 	rsaPublicKey := publicKeyInterface.(*rsa.PublicKey)
+
 	//对明文进行加密
-	cipherText, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, rsaPublicKey, plainText, label)
-	if err != nil {
-		return nil, err
+	msgLen := len(plainText)
+	hash := sha256.New()
+	step := rsaPublicKey.Size() - 2*hash.Size() - 2
+	// fmt.Println("step:", step)
+	var cipherText []byte
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+		encryptedBlockBytes, err := rsa.EncryptOAEP(hash, rand.Reader, rsaPublicKey, plainText[start:finish], label)
+		if err != nil {
+			return nil, err
+		}
+		cipherText = append(cipherText, encryptedBlockBytes...)
 	}
 	//返回密文
 	return cipherText, nil
@@ -209,7 +233,21 @@ func RSA_DecryptPKCS1v15(cipherText []byte, privateKey []byte) ([]byte, error) {
 		return nil, err
 	}
 	//对密文进行解密
-	plainText, _ := rsa.DecryptPKCS1v15(rand.Reader, rsaPrivateKey, cipherText)
+	msgLen := len(cipherText)
+	step := rsaPrivateKey.Size()
+	// fmt.Println("step:", step)
+	var plainText []byte
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+		decryptedBlockBytes, err := rsa.DecryptPKCS1v15(rand.Reader, rsaPrivateKey, cipherText[start:finish])
+		if err != nil {
+			return nil, err
+		}
+		plainText = append(plainText, decryptedBlockBytes...)
+	}
 	//返回明文
 	return plainText, nil
 }
@@ -224,8 +262,24 @@ func RSA_DecryptOAEP(cipherText []byte, privateKey []byte, label []byte) ([]byte
 		return nil, err
 	}
 	//对密文进行解密
-	//plainText, _ := rsa.DecryptPKCS1v15(rand.Reader, privateKey, cipherText)
-	return rsa.DecryptOAEP(sha256.New(), rand.Reader, rsaPrivateKey, cipherText, label)
+	msgLen := len(cipherText)
+	hash := sha256.New()
+	step := rsaPrivateKey.Size()
+	// fmt.Println("step:", step)
+	var plainText []byte
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+		decryptedBlockBytes, err := rsa.DecryptOAEP(hash, rand.Reader, rsaPrivateKey, cipherText[start:finish], label)
+		if err != nil {
+			return nil, err
+		}
+		plainText = append(plainText, decryptedBlockBytes...)
+	}
+	//返回明文
+	return plainText, nil
 }
 
 // GenerateRandomSeed 生成随机种子
