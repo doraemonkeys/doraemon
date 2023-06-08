@@ -1,6 +1,7 @@
 package doraemon
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -280,6 +281,56 @@ func RSA_DecryptOAEP(cipherText []byte, privateKey []byte, label []byte) ([]byte
 	}
 	//返回明文
 	return plainText, nil
+}
+
+// rsa数字签名，private为私钥的pem格式
+func RsaSignPKCS1v15(src []byte, privateKey []byte) ([]byte, error) {
+	// todo 获取私钥
+	//pem解码
+	block, _ := pem.Decode(privateKey)
+	//X509解码
+	rsaPrivateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	// 签名
+	shaNew := sha256.New()
+	_, err = shaNew.Write(src)
+	if err != nil {
+		return nil, err
+	}
+	shaByte := shaNew.Sum(nil)
+	v15, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivateKey, crypto.SHA256, shaByte)
+	if err != nil {
+		return nil, err
+	}
+	return v15, nil
+}
+
+// rsa数字验签，publicKey为公钥的pem格式
+func RsaVerifyPKCS1v15(src []byte, sign []byte, publicKey []byte) error {
+	// todo 获取公钥
+	//pem解码
+	block, _ := pem.Decode(publicKey)
+	//X509解码
+	rsaPublicKeyInterface, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+	//类型断言
+	rsaPublicKey := rsaPublicKeyInterface.(*rsa.PublicKey)
+	// 验签
+	shaNew := sha256.New()
+	_, err = shaNew.Write(src)
+	if err != nil {
+		return err
+	}
+	shaByte := shaNew.Sum(nil)
+	err = rsa.VerifyPKCS1v15(rsaPublicKey, crypto.SHA256, shaByte, sign)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GenerateRandomSeed 生成随机种子

@@ -197,3 +197,33 @@ func TestRSA_EncryptPKCS1v15(t *testing.T) {
 		})
 	}
 }
+
+func TestRsaSignPKCS1v15(t *testing.T) {
+	type args struct {
+		src []byte
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{"", args{[]byte("hello world")}},
+		{"", args{[]byte("hello world, 你好，世界")}},
+		{"", args{[]byte("gopher !!!")}},
+	}
+	privateKey, publicKey, err := GenerateRSAKey(2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RsaSignPKCS1v15(tt.args.src, privateKey)
+			if err != nil {
+				t.Errorf("RsaSignPKCS1v15() error = %v", err)
+				return
+			}
+			if err := RsaVerifyPKCS1v15(tt.args.src, got, publicKey); err != nil {
+				t.Errorf("RsaVerifyPKCS1v15() error = %v", err)
+			}
+		})
+	}
+}
