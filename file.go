@@ -64,7 +64,7 @@ func GetAllNamesRecursive(path string) ([]string, error) {
 	return files, err
 }
 
-// 获取path下所有文件名称(含后缀)
+// 获取path下所有文件名称(含后缀,不含路径)
 func GetFileNmaesInPath(path string) ([]string, error) {
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
@@ -79,7 +79,7 @@ func GetFileNmaesInPath(path string) ([]string, error) {
 	return files, nil
 }
 
-// 获取path路径下的文件夹名称
+// 获取path路径下的文件夹名称(不含路径)
 func GetFolderNamesInPath(path string) ([]string, error) {
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
