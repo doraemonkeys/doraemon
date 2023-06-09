@@ -3,8 +3,10 @@ package doraemon
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"time"
 )
 
@@ -113,5 +115,21 @@ func PressEnterKeyToContinueWithTimeout(timeout time.Duration) {
 		os.Exit(0)
 	case <-ch:
 		return
+	}
+}
+
+func OpenUrl(uri string) error {
+	switch runtime.GOOS {
+	case "windows":
+		cmd := exec.Command("cmd", "/c", "start", uri)
+		return cmd.Start()
+	case "darwin":
+		cmd := exec.Command("open", uri)
+		return cmd.Start()
+	case "linux":
+		cmd := exec.Command("xdg-open", uri)
+		return cmd.Start()
+	default:
+		return fmt.Errorf("don't know how to open things on %s platform", runtime.GOOS)
 	}
 }
