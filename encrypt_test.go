@@ -81,6 +81,21 @@ func TestCbcAESCrypt(t *testing.T) {
 			}
 		})
 	}
+	key = "386cb9759bab0c92e998e9376f113d74a1e19be13f4f39faa49af459a1d2e155"
+	Crypter, err = NewAESCryptFromHex(key)
+	if err != nil {
+		t.Error(err)
+	}
+	encryptedData := []byte{93, 15, 131, 103, 145, 111, 140, 84, 143, 55, 104, 153, 176, 58, 83, 79, 126, 240, 252, 112, 174, 227, 151, 193, 237, 195, 167, 89, 172, 226, 235, 28, 120, 171, 255, 28, 59, 247, 122, 245, 208, 104, 218, 139, 127, 186, 36, 191}
+	decryptedData, err := Crypter.Decrypt(encryptedData)
+	if err != nil {
+		t.Error(err)
+	}
+	if reflect.DeepEqual(decryptedData, []byte("hello world, 你好世界")) {
+		t.Log("Decrypt success")
+	} else {
+		t.Error("Decrypt failed")
+	}
 }
 
 func TestRSA_EncryptOAEP(t *testing.T) {
