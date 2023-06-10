@@ -370,7 +370,7 @@ func NewAESCryptFromHex(HexSecretKey string) (*CbcAESCrypt, error) {
 	return &CbcAESCrypt{secretKey: secretKey}, err
 }
 
-// NewAESCryptFromHex 创建AES加密器, HexSecretKey为16进制字符串。
+// NewAESCryptFromHex 创建AES加密器。
 // 第三方库使用 CBC模式，PKCS5填充。
 func NewAESCrypt(SecretKey []byte) (*CbcAESCrypt, error) {
 	// 128, 192, or 256 bits
