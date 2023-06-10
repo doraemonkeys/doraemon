@@ -1,6 +1,7 @@
 package doraemon
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -413,4 +414,19 @@ func randNByte(n int) []byte {
 	b := make([]byte, n)
 	rand.Read(b)
 	return b
+}
+func PKCS5Padding(plainText []byte, blockSize int) []byte {
+	padding := blockSize - (len(plainText) % blockSize)
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	newText := append(plainText, padText...)
+	return newText
+}
+
+func PKCS5UnPadding(plainText []byte, blockSize int) ([]byte, error) {
+	length := len(plainText)
+	number := int(plainText[length-1])
+	if number >= length || number > blockSize {
+		return nil, errors.New("invalid plaintext")
+	}
+	return plainText[:length-number], nil
 }
