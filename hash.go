@@ -3,6 +3,7 @@ package doraemon
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"os"
@@ -40,12 +41,12 @@ func GetFileSha1(filename string) (string, error) {
 }
 
 // GetSha1 获取[]byte的SHA1值(字母小写)
-func GetSha1(data []byte) (string, error) {
+func GetSha1(data []byte) ([]byte, error) {
 	hash := sha1.New()
 	if _, err := hash.Write(data); err != nil {
-		return "", err
+		return nil, err
 	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	return hash.Sum(nil), nil
 }
 
 // 获取文件md5
@@ -68,8 +69,21 @@ func GetFileMd5(filename string) ([]byte, error) {
 }
 
 // 计算md5
-func GatMd5(content []byte) []byte {
+func GatMd5(content []byte) ([]byte, error) {
 	hash := md5.New()
-	hash.Write(content)
-	return hash.Sum(nil)
+	_, err := hash.Write(content)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
+}
+
+// 计算sha256
+func GetSha256(content []byte) ([]byte, error) {
+	hash := sha256.New()
+	_, err := hash.Write(content)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
 }
