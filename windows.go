@@ -2,29 +2,13 @@ package doraemon
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"syscall"
 	"unsafe"
 
 	"github.com/lxn/win"
 )
-
-// 选择文件夹(仅限windows)
-func SelectFolderOnWindows() {
-	const BIF_RETURNONLYFSDIRS = 0x00000001
-	const BIF_NEWDIALOGSTYLE = 0x00000040
-	var bi win.BROWSEINFO
-	bi.HwndOwner = win.GetDesktopWindow()
-	bi.UlFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE
-	bi.LpszTitle, _ = syscall.UTF16PtrFromString("Select a folder")
-
-	id := win.SHBrowseForFolder(&bi)
-	if id != 0 {
-		path := make([]uint16, win.MAX_PATH)
-		win.SHGetPathFromIDList(id, &path[0])
-		fmt.Println(syscall.UTF16ToString(path))
-	}
-}
 
 // 返回选择的文件路径(绝对路径)
 func SelectMultiFilesOnWindows() ([]string, error) {
@@ -52,10 +36,10 @@ func parseMultiString(multiString []uint16) []string {
 		if multiString[i] != 0 {
 			var str []uint16
 			for ; i < len(multiString); i++ {
+				str = append(str, multiString[i])
 				if multiString[i] == 0 {
 					break
 				}
-				str = append(str, multiString[i])
 			}
 			ret = append(ret, win.UTF16PtrToString(&str[0]))
 		}
@@ -68,4 +52,35 @@ func parseMultiString(multiString []uint16) []string {
 		ret[i] = filepath.Join(dir, ret[i])
 	}
 	return ret[1:]
+}
+
+// 选择文件夹(仅限windows)
+func SelectFolderOnWindows() (string, error) {
+	const BIF_RETURNONLYFSDIRS = 0x00000001
+	const BIF_NEWDIALOGSTYLE = 0x00000040
+	var bi win.BROWSEINFO
+	bi.HwndOwner = win.GetDesktopWindow()
+	bi.UlFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE
+	bi.LpszTitle, _ = syscall.UTF16PtrFromString("Select a folder")
+
+	id := win.SHBrowseForFolder(&bi)
+	if id != 0 {
+		path := make([]uint16, win.MAX_PATH)
+		win.SHGetPathFromIDList(id, &path[0])
+		return syscall.UTF16ToString(path), nil
+	}
+	return "", fmt.Errorf("user cancel")
+}
+
+// 获取系统默认桌面路径
+func GetDesktopPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	desktopPath := filepath.Join(homeDir, "Desktop")
+	if _, err := os.Stat(desktopPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("desktop path not exist")
+	}
+	return desktopPath, nil
 }
