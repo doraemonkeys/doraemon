@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
 	github.com/fatih/color v1.13.0
+	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/prestonTao/upnp v0.0.0-20220429011949-f141651daac6
 	github.com/tjfoc/gmsm v1.4.1
 	github.com/wumansgy/goEncrypt v1.1.0
