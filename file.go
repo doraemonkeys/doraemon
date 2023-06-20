@@ -16,6 +16,9 @@ import (
 // 递归获取path下所有文件(包含子文件夹中的文件)。
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetFileNamesRecursive(path string) ([]string, error) {
+	if path == "" {
+		path = "."
+	}
 	files := make([]string, 0)
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
@@ -33,6 +36,9 @@ func GetFileNamesRecursive(path string) ([]string, error) {
 // 递归获取path下所有文件夹(包含子文件夹)
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetFolderNamesRecursive(path string) ([]string, error) {
+	if path == "" {
+		path = "."
+	}
 	dirs := make([]string, 0)
 	err := filepath.Walk(path, func(childPath string, f os.FileInfo, err error) error {
 		if f == nil {
@@ -53,6 +59,9 @@ func GetFolderNamesRecursive(path string) ([]string, error) {
 // 递归获取path下所有文件和文件夹
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetAllNamesRecursive(path string) ([]string, error) {
+	if path == "" {
+		path = "."
+	}
 	var files []string
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
@@ -66,6 +75,9 @@ func GetAllNamesRecursive(path string) ([]string, error) {
 
 // 获取path下所有文件名称(含后缀,不含路径)
 func GetFileNmaesInPath(path string) ([]string, error) {
+	if path == "" {
+		path = "."
+	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -81,6 +93,9 @@ func GetFileNmaesInPath(path string) ([]string, error) {
 
 // 获取path路径下的文件夹名称(不含路径)
 func GetFolderNamesInPath(path string) ([]string, error) {
+	if path == "" {
+		path = "."
+	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -96,6 +111,9 @@ func GetFolderNamesInPath(path string) ([]string, error) {
 
 // 获取path路径下的文件(含后缀)和文件夹名称
 func GetAllNamesInPath(path string) ([]string, error) {
+	if path == "" {
+		path = "."
+	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
