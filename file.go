@@ -315,6 +315,13 @@ func IsChildDir(parent, child string) bool {
 	return strings.HasPrefix(childAbs, parentAbs)
 }
 
+// 判断child是否是parent的子文件夹(为了性能只是简单的判断前缀，需要保证路径分隔符一致)
+func IsChildDir2(parent, child string) bool {
+	parent = strings.ToUpper(parent)
+	child = strings.ToUpper(child)
+	return strings.HasPrefix(child, parent)
+}
+
 // 获取当前程序的执行路径(包含可执行文件名称)
 // C:\Users\*\AppData\Local\Temp\*\exe\main.exe 或 .\main.exe
 // (读取命令参数的方式)
