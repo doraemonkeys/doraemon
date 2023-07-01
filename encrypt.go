@@ -387,12 +387,12 @@ func (a *CbcAESCrypt) Encrypt(plainText []byte) ([]byte, error) {
 		return nil, errors.New("plainText is empty")
 	}
 	IV := a.rand16Byte()
-	rawCipherTextHex, err := aes.AesCbcEncrypt(plainText, a.secretKey, IV)
+	rawCipherText, err := aes.AesCbcEncrypt(plainText, a.secretKey, IV)
 	if err != nil {
 		return nil, err
 	}
-	rawCipherTextHex = append(rawCipherTextHex, IV...)
-	return rawCipherTextHex, nil
+	rawCipherText = append(rawCipherText, IV...)
+	return rawCipherText, nil
 }
 
 // Decrypt 解密，cipherText 为 密文+16字节IV。
@@ -415,6 +415,7 @@ func randNByte(n int) []byte {
 	rand.Read(b)
 	return b
 }
+
 func PKCS5Padding(plainText []byte, blockSize int) []byte {
 	padding := blockSize - (len(plainText) % blockSize)
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)

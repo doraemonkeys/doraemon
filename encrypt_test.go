@@ -39,6 +39,7 @@ func TestCbcAESCrypt(t *testing.T) {
 			if err != nil {
 				return
 			}
+			t.Logf("CbcAESCrypt.Encrypt() = %s", got)
 			t.Logf("CbcAESCrypt.Encrypt() = %x", got)
 
 			// 解密
