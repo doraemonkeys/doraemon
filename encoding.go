@@ -14,18 +14,29 @@ import (
 	"golang.org/x/text/transform"
 )
 
-// GBK,GB18030
+// GBK
 func Utf8ToGbk(text string) string {
 	return mahonia.NewEncoder("gbk").ConvertString(text)
 }
 
 // GB18030
-func Utf8ToANSI(text string) string {
+func Utf8ToGB18030(text string) string {
 	return mahonia.NewEncoder("GB18030").ConvertString(text)
 }
 
 func GbkToUtf8(b []byte) []byte {
 	tfr := transform.NewReader(bytes.NewReader(b), simplifiedchinese.GBK.NewDecoder())
+	d, e := io.ReadAll(tfr)
+	if e != nil {
+		return nil
+	}
+	return d
+}
+
+// GBK is the GBK encoding. It encodes an extension of the GB2312 character set
+// and is also known as Code Page 936.
+func UTF8ToGBK(b []byte) []byte {
+	tfr := transform.NewReader(bytes.NewReader(b), simplifiedchinese.GBK.NewEncoder())
 	d, e := io.ReadAll(tfr)
 	if e != nil {
 		return nil
