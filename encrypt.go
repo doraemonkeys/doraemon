@@ -286,7 +286,6 @@ func RSA_DecryptOAEP(cipherText []byte, privateKey []byte, label []byte) ([]byte
 
 // rsa数字签名，private为私钥的pem格式
 func RsaSignPKCS1v15(src []byte, privateKey []byte) ([]byte, error) {
-	// todo 获取私钥
 	//pem解码
 	block, _ := pem.Decode(privateKey)
 	//X509解码
