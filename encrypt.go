@@ -405,24 +405,25 @@ func (a *CbcAESCrypt) Decrypt(cipherText []byte) ([]byte, error) {
 }
 
 func (a *CbcAESCrypt) rand16Byte() []byte {
-	return randNByte(16)
+	return RandNByte(16)
 }
 
-// randNByte returns a slice of n random bytes.
-func randNByte(n int) []byte {
+// RandNByte returns a slice of n random bytes.
+func RandNByte(n int) []byte {
 	b := make([]byte, n)
 	rand.Read(b)
 	return b
 }
 
-func PKCS5Padding(plainText []byte, blockSize int) []byte {
+// PKCS7是兼容PKCS5的，PKCS5相当于PKCS7的一个子集。
+func PKCS7Padding(plainText []byte, blockSize int) []byte {
 	padding := blockSize - (len(plainText) % blockSize)
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
 	newText := append(plainText, padText...)
 	return newText
 }
 
-func PKCS5UnPadding(plainText []byte, blockSize int) ([]byte, error) {
+func PKCS7UnPadding(plainText []byte, blockSize int) ([]byte, error) {
 	length := len(plainText)
 	number := int(plainText[length-1])
 	if number >= length || number > blockSize {
