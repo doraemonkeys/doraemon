@@ -17,7 +17,7 @@ import (
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetFileNamesRecursive(path string) ([]string, error) {
 	if path == "" {
-		path = "."
+		return nil, fmt.Errorf("path is empty")
 	}
 	files := make([]string, 0)
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
@@ -37,7 +37,7 @@ func GetFileNamesRecursive(path string) ([]string, error) {
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetFolderNamesRecursive(path string) ([]string, error) {
 	if path == "" {
-		path = "."
+		return nil, fmt.Errorf("path is empty")
 	}
 	dirs := make([]string, 0)
 	err := filepath.Walk(path, func(childPath string, f os.FileInfo, err error) error {
@@ -60,7 +60,7 @@ func GetFolderNamesRecursive(path string) ([]string, error) {
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetAllNamesRecursive(path string) ([]string, error) {
 	if path == "" {
-		path = "."
+		return nil, fmt.Errorf("path is empty")
 	}
 	var files []string
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
@@ -76,7 +76,7 @@ func GetAllNamesRecursive(path string) ([]string, error) {
 // 获取path下所有文件名称(含后缀,不含路径)
 func GetFileNmaesInPath(path string) ([]string, error) {
 	if path == "" {
-		path = "."
+		return nil, fmt.Errorf("path is empty")
 	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
@@ -94,7 +94,7 @@ func GetFileNmaesInPath(path string) ([]string, error) {
 // 获取path路径下的文件夹名称(不含路径)
 func GetFolderNamesInPath(path string) ([]string, error) {
 	if path == "" {
-		path = "."
+		return nil, fmt.Errorf("path is empty")
 	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
@@ -112,7 +112,7 @@ func GetFolderNamesInPath(path string) ([]string, error) {
 // 获取path路径下的文件(含后缀)和文件夹名称
 func GetAllNamesInPath(path string) ([]string, error) {
 	if path == "" {
-		path = "."
+		return nil, fmt.Errorf("path is empty")
 	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
@@ -145,6 +145,9 @@ func IsDir(path string) (is bool, exist bool, err error) {
 
 // 是否为文件
 func IsFile(path string) (is bool, exist bool, err error) {
+	if path == "" {
+		return false, false, fmt.Errorf("path is empty")
+	}
 	if path[len(path)-1] == '/' || path[len(path)-1] == '\\' {
 		path = path[:len(path)-1] //去除最后一个路径分隔符
 	}
