@@ -131,6 +131,18 @@ func FileOrDirIsExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
+// 文件是否存在
+func FileIsExist(path string) bool {
+	f, err := os.Stat(path)
+	if err != nil {
+		return os.IsExist(err)
+	}
+	if f.IsDir() {
+		return false
+	}
+	return true
+}
+
 // 是否为文件夹
 func IsDir(path string) (is bool, exist bool, err error) {
 	Info, err := os.Stat(path)
@@ -168,9 +180,8 @@ func IsFile(path string) (is bool, exist bool, err error) {
 // dst必须是一个存在的文件夹，否则返回错误。
 // scr为文件的绝对或相对路径(包含文件名)。
 func CopyFile(src, dst string, overwrite bool) error {
-	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
-		dst += `\` // 保证dst是文件夹
-	}
+	dst = strings.TrimSuffix(dst, `\`)
+	dst = strings.TrimSuffix(dst, `/`)
 	target := filepath.Join(dst, filepath.Base(src))
 	if !overwrite && FileOrDirIsExist(target) {
 		return fmt.Errorf("%s is exist", target)
@@ -207,9 +218,8 @@ func CopyFile(src, dst string, overwrite bool) error {
 // dst必须是一个存在的文件夹，否则返回错误。
 // scr为的绝对或相对路径。
 func MoveFileOrDir(src, dst string, overwrite bool) error {
-	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
-		dst += string(os.PathSeparator)
-	}
+	dst = strings.TrimSuffix(dst, `\`)
+	dst = strings.TrimSuffix(dst, `/`)
 	//判断src是否存在
 	if !FileOrDirIsExist(src) {
 		return fmt.Errorf("%s is not exist", src)
@@ -258,12 +268,10 @@ func CopyFileOrDir(src, dst string, overwrite bool) error {
 // overwrite为false时，如果目标文件存在则返回错误。
 // dst,scr都必须是一个存在的文件夹，否则返回错误。
 func CopyDir(src, dst string, overwrite bool) error {
-	if dst[len(dst)-1:] != `\` && dst[len(dst)-1:] != `/` {
-		dst += string(os.PathSeparator) //添加路径分隔符
-	}
-	if src[len(src)-1:] != `\` && src[len(src)-1:] != `/` {
-		src += string(os.PathSeparator) //添加路径分隔符
-	}
+	dst = strings.TrimSuffix(dst, `\`)
+	dst = strings.TrimSuffix(dst, `/`)
+	src = strings.TrimSuffix(src, `\`)
+	src = strings.TrimSuffix(src, `/`)
 	// dst加上原文件夹名字
 	dst = filepath.Join(dst, filepath.Base(src)) //dst更新为目标文件夹
 	if !FileOrDirIsExist(dst) {
