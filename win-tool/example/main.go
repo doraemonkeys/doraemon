@@ -6,22 +6,22 @@ import (
 	"fmt"
 	"strings"
 
-	win_tool "github.com/doraemonkeys/doraemon/win-tool/device"
+	winDevice "github.com/doraemonkeys/doraemon/win-tool/device"
 )
 
 func main() {
-	win_tool.WatchUsbDevice(func(behavior win_tool.UsbDeviceBehavior, lParam uintptr) {
+	winDevice.WatchUsbDevice(func(behavior winDevice.UsbDeviceBehavior, lParam uintptr) {
 		fmt.Printf("behavior: %s lParam: %x\n", behavior, lParam)
-		if behavior == win_tool.Unknown {
+		if behavior == winDevice.Unknown {
 			return
 		}
-		device, err := win_tool.ReadDeviceInfo(lParam)
+		device, err := winDevice.ReadDeviceInfo(lParam)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		fmt.Printf("device: %+v\n", device)
-		if behavior != win_tool.AddDevice {
+		if behavior != winDevice.AddDevice {
 			return
 		}
 		if !strings.Contains(device.Name, "Volume") {
@@ -36,7 +36,7 @@ func main() {
 			}
 		}
 		fmt.Println("volume GUID:", volGUID)
-		ltr, err := win_tool.GetVolumeLetterByVolumeGUID(volGUID)
+		ltr, err := winDevice.GetVolumeLetterByVolumeGUID(volGUID)
 		if err != nil {
 			fmt.Println("GetDiskByVolumeGUID error:", err)
 			return
