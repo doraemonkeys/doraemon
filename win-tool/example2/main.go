@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	win_tool "github.com/doraemonkeys/doraemon/win-tool/device"
+	winDevice "github.com/doraemonkeys/doraemon/win-tool/device"
 )
 
 func main() {
-	devices, err := win_tool.DevconListAllUsbDeviceNames("./devcon.exe")
+	devices, err := winDevice.DevconListAllUsbDeviceNames("./devcon.exe")
 	if err != nil {
 		panic(err)
 	}
@@ -18,22 +18,22 @@ func main() {
 
 	fmt.Println("----------------------------------")
 
-	fmt.Println(win_tool.PnputilEnumConnectedDevices())
+	fmt.Println(winDevice.PnputilEnumConnectedDevices())
 	fmt.Println("----------------------------------")
-	dpdi, err := win_tool.DiskPartListDisk()
+	dpdi, err := winDevice.DiskPartListDisk()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%+v\n", dpdi)
-	dpdd, err := win_tool.DiskPartDetailDisk(0)
+	dpdd, err := winDevice.DiskPartDetailDisk(0)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%+v\n", dpdd)
 	fmt.Println("----------------------------------")
-	fmt.Println(win_tool.DiskPartIsVolumeReadOnly('F'))
-	fmt.Println(win_tool.DiskPartIsVolumeReadOnly('G'))
-	fmt.Println(win_tool.DiskPartIsDiskReadOnly(2))
-	fmt.Println(win_tool.DiskPartSwitchDiskReadOnly(20))
-	fmt.Println(win_tool.DiskPartIsDiskReadOnly(2))
+	fmt.Println(winDevice.DiskPartIsVolumeReadOnly('F'))
+	fmt.Println(winDevice.DiskPartIsVolumeReadOnly('G'))
+	fmt.Println(winDevice.DiskPartIsDiskReadOnly(2))
+	fmt.Println(winDevice.DiskPartSwitchDiskReadOnly(20))
+	fmt.Println(winDevice.DiskPartIsDiskReadOnly(2))
 }
