@@ -75,9 +75,6 @@ func GetAllNamesRecursive(path string) ([]string, error) {
 
 // 获取path下所有文件名称(含后缀,不含路径)
 func GetFileNmaesInPath(path string) ([]string, error) {
-	if path == "" {
-		return nil, fmt.Errorf("path is empty")
-	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -93,9 +90,6 @@ func GetFileNmaesInPath(path string) ([]string, error) {
 
 // 获取path路径下的文件夹名称(不含路径)
 func GetFolderNamesInPath(path string) ([]string, error) {
-	if path == "" {
-		return nil, fmt.Errorf("path is empty")
-	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -111,9 +105,6 @@ func GetFolderNamesInPath(path string) ([]string, error) {
 
 // 获取path路径下的文件(含后缀)和文件夹名称
 func GetAllNamesInPath(path string) ([]string, error) {
-	if path == "" {
-		return nil, fmt.Errorf("path is empty")
-	}
 	DirEntry, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
