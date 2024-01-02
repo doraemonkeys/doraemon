@@ -9,10 +9,19 @@ import (
 	"github.com/fatih/color"
 )
 
-func PressToContinue(ch chan bool) {
+type Pair[T1, T2 any] struct {
+	First  T1
+	Second T2
+}
+
+func PressEnterKeyToContinue2(ch chan bool) {
 	fmt.Scanf("\n")
 	ch <- true
 	close(ch)
+}
+
+func PressEnterKeyToContinue() {
+	fmt.Scanf("\n")
 }
 
 // colors描述了后面每个字符串的颜色属性，colors与strs长度必须相同,
