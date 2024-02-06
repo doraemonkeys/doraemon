@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 
@@ -76,6 +77,14 @@ func GatMd5(content []byte) ([]byte, error) {
 		return nil, err
 	}
 	return hash.Sum(nil), nil
+}
+
+func GatMd5Hex(content []byte) (string, error) {
+	md5, err := GatMd5(content)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", md5), nil
 }
 
 // 计算sha256
