@@ -14,6 +14,11 @@ type Pair[T1, T2 any] struct {
 	Second T2
 }
 
+type Result[T any] struct {
+	Err   error
+	Value T
+}
+
 func PressEnterKeyToContinue2(ch chan bool) {
 	fmt.Scanf("\n")
 	ch <- true
