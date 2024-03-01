@@ -65,3 +65,21 @@ type StdLogger interface {
 	Panicf(string, ...interface{})
 	Panicln(...interface{})
 }
+
+// ReadAllOrFull reads from reader until buf is full or EOF.
+func ReadAllOrFull(buf []byte, reader io.Reader) (n int, err error) {
+	var nn int
+	for {
+		if n == len(buf) {
+			return n, nil
+		}
+		nn, err = reader.Read(buf[n:])
+		n += nn
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return
+		}
+	}
+}
