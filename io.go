@@ -2,6 +2,7 @@ package doraemon
 
 import (
 	"bufio"
+	"errors"
 	"io"
 )
 
@@ -66,12 +67,13 @@ type StdLogger interface {
 	Panicln(...interface{})
 }
 
-// ReadAllOrFull reads from reader until buf is full or EOF.
-func ReadAllOrFull(buf []byte, reader io.Reader) (n int, err error) {
+// ReadAll reads from reader until buf is full or an error occurs.
+// If buf is full before EOF, ReadAll returns an error.
+func ReadAll(buf []byte, reader io.Reader) (n int, err error) {
 	var nn int
 	for {
 		if n == len(buf) {
-			return n, nil
+			return n, errors.New("buffer full")
 		}
 		nn, err = reader.Read(buf[n:])
 		n += nn
