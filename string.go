@@ -258,7 +258,6 @@ func ReadLines(reader io.Reader) (lines [][]byte, err error) {
 // ReadTrimmedLines 从给定的 io.Reader 中读取内容，并按行分割成字节切片。
 // 开头和结尾的空白行将被去除。
 // 返回值 lines 是一个二维字节切片，每个元素代表一行的内容。
-// 返回值 err 表示读取过程中是否发生错误。
 func ReadTrimmedLines(reader io.Reader) (lines [][]byte, err error) {
 	lines, err = ReadLines(reader)
 	if err != nil {
