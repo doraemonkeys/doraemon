@@ -1,4 +1,4 @@
-package doraemon
+package net
 
 import (
 	"bytes"
@@ -17,6 +17,9 @@ import (
 	"time"
 
 	"github.com/axgle/mahonia"
+	"github.com/doraemonkeys/doraemon"
+	"github.com/doraemonkeys/doraemon/encode"
+	dexec "github.com/doraemonkeys/doraemon/exec"
 	"github.com/prestonTao/upnp"
 	"golang.org/x/net/publicsuffix"
 )
@@ -102,7 +105,7 @@ func PingAll(srcIP string) error {
 }
 
 func PingToUpdateARP(ip string) {
-	CmdNoOutput("", []string{"ping", "-l", "1", "-n", "1", "-w", "500", ip, "&", "exit"})
+	dexec.CmdNoOutput("", []string{"ping", "-l", "1", "-n", "1", "-w", "500", ip, "&", "exit"})
 }
 
 // 获取局域网内所有主机IP与MAC地址(通过ping命令更新arp表,不包含自己),
@@ -116,7 +119,7 @@ func GetAllHosts(lanIP string) (map[string]string, error) {
 		return nil, err
 	}
 	time.Sleep(time.Second * 6)
-	output, err := Cmd("", []string{"arp", "-a", "&", "exit"})
+	output, err := dexec.Cmd("", []string{"arp", "-a", "&", "exit"})
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +294,7 @@ func GetIpv4MaskByInterfaceName(name string) (net.IPMask, error) {
 func HexMaskToDotMask(hexMask string) string {
 	var dotMask string
 	for i := 0; i < len(hexMask); i += 2 {
-		num, _ := HexToInt(hexMask[i : i+2])
+		num, _ := doraemon.HexToInt(hexMask[i : i+2])
 		dotMask += strconv.Itoa(num) + "."
 	}
 	return dotMask[:len(dotMask)-1]
@@ -327,7 +330,7 @@ func GetWLANDefaultGateway() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	out = GbkToUtf8(out)
+	out = encode.GbkToUtf8(out)
 	n := bytes.Index(out, []byte("WLAN"))
 	//只要WLAN的信息
 	if n+304 > len(out) {

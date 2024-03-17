@@ -1,12 +1,11 @@
 package doraemon
 
 import (
+	"bufio"
 	"fmt"
 	"math/rand"
 	"os"
 	"time"
-
-	"github.com/fatih/color"
 )
 
 type Pair[T1, T2 any] struct {
@@ -29,20 +28,6 @@ func PressEnterKeyToContinue() {
 	fmt.Scanf("\n")
 }
 
-// colors描述了后面每个字符串的颜色属性，colors与strs长度必须相同,
-// 注意字符串不要忘了带上空格和换行。
-func ColorPrint(attributes []color.Attribute, strs ...string) {
-	for k, str := range strs {
-		if attributes[k] != 0 {
-			color.Set(attributes[k])
-			fmt.Print(str)
-			color.Unset()
-		} else {
-			fmt.Print(str)
-		}
-	}
-}
-
 // 获取昨天的日期
 func GetYesterday() time.Time {
 	return time.Now().AddDate(0, 0, -1)
@@ -56,6 +41,24 @@ func IsAdmin() bool {
 	}
 	defer file.Close()
 	return true
+}
+
+// Press Enter Key to Continue with Timeout，超时则退出程序
+func PressEnterKeyToContinueWithTimeout(timeout time.Duration) {
+	ch := make(chan struct{}, 1)
+
+	go func() {
+		input := bufio.NewReader(os.Stdin)
+		input.ReadString('\n')
+		ch <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(timeout):
+		os.Exit(0)
+	case <-ch:
+		return
+	}
 }
 
 // 随机获取user-agent(不含移动端)

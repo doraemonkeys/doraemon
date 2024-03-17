@@ -1,6 +1,6 @@
 //go:build windows
 
-package doraemon
+package libc
 
 import "golang.org/x/sys/windows"
 

@@ -1,4 +1,4 @@
-package doraemon
+package encode
 
 import (
 	"bufio"

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/doraemonkeys/doraemon"
+	"github.com/doraemonkeys/doraemon/encode"
 )
 
 type WmicDeviceInfo struct {
@@ -62,7 +63,7 @@ func PnputilEnumConnectedDevices() ([][]doraemon.Pair[string, string], error) {
 	var devices [][]doraemon.Pair[string, string]
 	var device []doraemon.Pair[string, string]
 	for i := 0; i < len(lines); i++ {
-		lines[i] = doraemon.GbkToUtf8(lines[i])
+		lines[i] = encode.GbkToUtf8(lines[i])
 		line := strings.TrimSpace(string(lines[i]))
 		if strings.TrimSpace(line) == "" && device != nil {
 			devices = append(devices, device)
@@ -112,7 +113,7 @@ func MountvolRemoveUnusedMountPoint() error {
 	if err != nil {
 		return err
 	}
-	content := doraemon.GbkToUtf8(cmd_out.Bytes())
+	content := encode.GbkToUtf8(cmd_out.Bytes())
 	if bytes.Contains(content, []byte("拒绝")) ||
 		bytes.Contains(content, []byte("refused")) {
 		return errors.New(strings.TrimSpace(string(content)))
@@ -131,7 +132,7 @@ func MountvolRemoveMountPoint(volumeLetter byte) error {
 	if err != nil {
 		return err
 	}
-	content := doraemon.GbkToUtf8(cmd_out.Bytes())
+	content := encode.GbkToUtf8(cmd_out.Bytes())
 	if bytes.Contains(content, []byte("拒绝")) ||
 		bytes.Contains(content, []byte("refused")) {
 		return errors.New(strings.TrimSpace(string(content)))
@@ -148,7 +149,7 @@ func MountvolDisableAutoMount() error {
 	if err != nil {
 		return err
 	}
-	content := doraemon.GbkToUtf8(cmd_out.Bytes())
+	content := encode.GbkToUtf8(cmd_out.Bytes())
 	if bytes.Contains(content, []byte("拒绝")) ||
 		bytes.Contains(content, []byte("refused")) {
 		return errors.New(strings.TrimSpace(string(content)))
@@ -165,7 +166,7 @@ func MountvolEnableAutoMount() error {
 	if err != nil {
 		return err
 	}
-	content := doraemon.GbkToUtf8(cmd_out.Bytes())
+	content := encode.GbkToUtf8(cmd_out.Bytes())
 	if bytes.Contains(content, []byte("拒绝")) ||
 		bytes.Contains(content, []byte("refused")) {
 		return errors.New(strings.TrimSpace(string(content)))
