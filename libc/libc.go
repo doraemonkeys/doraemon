@@ -1,6 +1,6 @@
 //go:build darwin || freebsd || linux
 
-package doraemon
+package libc
 
 import "github.com/ebitengine/purego"
 

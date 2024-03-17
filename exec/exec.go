@@ -1,13 +1,13 @@
-package doraemon
+package exec
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 	"time"
+
+	"github.com/doraemonkeys/doraemon/encode"
 )
 
 // Deprecated
@@ -29,7 +29,7 @@ func Cmd_NoWait(dir string, params []string) (cmd *exec.Cmd, err error) {
 			command += " "
 		}
 	}
-	command = Utf8ToGbk(command)
+	command = encode.Utf8ToGbk(command)
 	cmd_in.WriteString(command + "\n")
 	err = cmd.Start() //不等待执行完毕就返回
 	if err != nil {
@@ -63,14 +63,14 @@ func Cmd(dir string, params []string) (string, error) {
 			command += " "
 		}
 	}
-	command = Utf8ToGbk(command)
+	command = encode.Utf8ToGbk(command)
 	cmd_in.WriteString(command + "\n")
 	err := cmd.Run()
 	if err != nil {
 		return "", err
 	}
 	output := cmd_out.Bytes()
-	return string(GbkToUtf8(output)), nil
+	return string(encode.GbkToUtf8(output)), nil
 }
 
 // Deprecated
@@ -92,31 +92,13 @@ func CmdNoOutput(dir string, params []string) error {
 			command += " "
 		}
 	}
-	command = Utf8ToGbk(command)
+	command = encode.Utf8ToGbk(command)
 	cmd_in.WriteString(command + "\n")
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-// Press Enter Key to Continue with Timeout，超时则退出程序
-func PressEnterKeyToContinueWithTimeout(timeout time.Duration) {
-	ch := make(chan struct{}, 1)
-
-	go func() {
-		input := bufio.NewReader(os.Stdin)
-		input.ReadString('\n')
-		ch <- struct{}{}
-	}()
-
-	select {
-	case <-time.After(timeout):
-		os.Exit(0)
-	case <-ch:
-		return
-	}
 }
 
 func OpenUrl(uri string) error {

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/doraemonkeys/doraemon"
+	"github.com/doraemonkeys/doraemon/encode"
 )
 
 // 需要管理员权限
@@ -51,7 +52,7 @@ func DiskPartListDisk() ([]DiskPartDiskInfo, error) {
 	var diskInfos []DiskPartDiskInfo
 	var linesStr []string
 	for i := 0; i < len(lines); i++ {
-		line := strings.TrimSpace(string(doraemon.GbkToUtf8(lines[i])))
+		line := strings.TrimSpace(string(encode.GbkToUtf8(lines[i])))
 		if line == "" {
 			continue
 		}
@@ -191,9 +192,9 @@ func DiskPartDetailDisk(diskNumber uint) (DiskPartDiskDetail, error) {
 		}
 	}
 	var diskPartDiskDetail DiskPartDiskDetail
-	diskPartDiskDetail.Desc = strings.TrimSpace(string(doraemon.GbkToUtf8(lines[0])))
+	diskPartDiskDetail.Desc = strings.TrimSpace(string(encode.GbkToUtf8(lines[0])))
 	for i := 1; i < len(lines); i++ {
-		line := strings.TrimSpace(string(doraemon.GbkToUtf8(lines[i])))
+		line := strings.TrimSpace(string(encode.GbkToUtf8(lines[i])))
 		if line == "" {
 			lines = lines[i+1:]
 			break
@@ -211,7 +212,7 @@ func DiskPartDetailDisk(diskNumber uint) (DiskPartDiskDetail, error) {
 
 	var linesStr []string
 	for i := 0; i < len(lines); i++ {
-		line := strings.TrimSpace(string(doraemon.GbkToUtf8(lines[i])))
+		line := strings.TrimSpace(string(encode.GbkToUtf8(lines[i])))
 		if line == "" {
 			continue
 		}
@@ -290,7 +291,7 @@ func DiskPartListVolume() ([]DiskPartVolumeInfo, error) {
 	}
 	var linesStr []string
 	for i := 0; i < len(lines); i++ {
-		line := strings.TrimSpace(string(doraemon.GbkToUtf8(lines[i])))
+		line := strings.TrimSpace(string(encode.GbkToUtf8(lines[i])))
 		if line == "" {
 			continue
 		}
@@ -420,7 +421,7 @@ func DiskPartSetDiskReadOnly(diskNum uint) error {
 	if err != nil {
 		return err
 	}
-	content := doraemon.GbkToUtf8(cmd_out.Bytes())
+	content := encode.GbkToUtf8(cmd_out.Bytes())
 	if bytes.Contains(content, []byte("success")) ||
 		bytes.Contains(content, []byte("成功")) {
 		return nil
@@ -452,7 +453,7 @@ func DiskPartSetDiskReadWrite(diskNum uint) error {
 	if err != nil {
 		return err
 	}
-	content := doraemon.GbkToUtf8(cmd_out.Bytes())
+	content := encode.GbkToUtf8(cmd_out.Bytes())
 	if bytes.Contains(content, []byte("success")) ||
 		bytes.Contains(content, []byte("成功")) {
 		return nil
@@ -504,7 +505,7 @@ func DiskPartRemoveVolumeMountPoint(volumeLetter byte) error {
 			if err != nil {
 				return err
 			}
-			content := doraemon.GbkToUtf8(cmd_out.Bytes())
+			content := encode.GbkToUtf8(cmd_out.Bytes())
 			if bytes.Contains(content, []byte("success")) ||
 				bytes.Contains(content, []byte("成功")) {
 				return nil
@@ -548,7 +549,7 @@ func DiskPartAssignVolumeMountPoint(num uint, volumeLetter byte) error {
 			if err != nil {
 				return err
 			}
-			content := doraemon.GbkToUtf8(cmd_out.Bytes())
+			content := encode.GbkToUtf8(cmd_out.Bytes())
 			if bytes.Contains(content, []byte("success")) ||
 				bytes.Contains(content, []byte("成功")) {
 				return nil

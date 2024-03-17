@@ -1,4 +1,4 @@
-package doraemon
+package crypto
 
 import (
 	"crypto/rand"
