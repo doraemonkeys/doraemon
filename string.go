@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"strings"
 	"unsafe"
 )
@@ -276,4 +277,22 @@ func ReadTrimmedLines(reader io.Reader) (lines [][]byte, err error) {
 		}
 	}
 	return lines, nil
+}
+
+func GenRandomString(charset string, length int) string {
+	strB := strings.Builder{}
+	strB.Grow(length)
+	var err error
+	for i := 0; i < length; i++ {
+		if err = strB.WriteByte(charset[rand.IntN(len(charset))]); err != nil {
+			panic(err)
+		}
+	}
+	return strB.String()
+}
+
+// GenRandomAsciiString 生成指定长度的随机字符串，只包含大小写字母和数字。
+func GenRandomAsciiString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	return GenRandomString(charset, length)
 }
