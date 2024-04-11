@@ -129,3 +129,76 @@ func TestSimpleKV(t *testing.T) {
 		t.Errorf("Get returned incorrect value: got %v, want %v", value, testValue2)
 	}
 }
+func TestSimpleKV_Set2(t *testing.T) {
+	fileName := "./test.db"
+	err := os.WriteFile(fileName, []byte{}, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fileName)
+	db, err := NewSimpleKV(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("Set key-value pair", func(t *testing.T) {
+		key := "testKey"
+		value := "testValue"
+
+		err := db.Set(key, value)
+		if err != nil {
+			t.Errorf("Failed to set value: %v", err)
+		}
+
+		result, exists := db.Get(key)
+		if !exists {
+			t.Errorf("Key should exist after setting it")
+		}
+		if result != value {
+			t.Errorf("Get returned incorrect value: got %v, want %v", result, value)
+		}
+	})
+
+	t.Run("Set key-value pair with existing key", func(t *testing.T) {
+		key := "testKey"
+		value := "testValue2"
+
+		err := db.Set(key, value)
+		if err != nil {
+			t.Errorf("Failed to set value: %v", err)
+		}
+
+		result, exists := db.Get(key)
+		if !exists {
+			t.Errorf("Key should exist after setting it")
+		}
+		if result != value {
+			t.Errorf("Get returned incorrect value: got %v, want %v", result, value)
+		}
+	})
+
+	t.Run("Set key-value pair with error", func(t *testing.T) {
+		key := "testKey"
+		value := "testValue3"
+
+		// Simulate an error during saving
+		f, err := os.OpenFile(fileName, os.O_WRONLY, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = f.Chmod(0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		err = db.Set(key, value)
+		if err == nil {
+			t.Error("Expected an error but got nil")
+		}
+
+		_, exists := db.Get(key)
+		if exists {
+			t.Error("Key should not exist after error")
+		}
+	})
+}

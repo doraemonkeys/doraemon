@@ -31,13 +31,6 @@ func NewSimpleKV(dbPath string) (*SimpleKV, error) {
 	return kv, nil
 }
 
-func (kv *SimpleKV) Set(key, value string) error {
-	kv.dataLock.Lock()
-	defer kv.dataLock.Unlock()
-	kv.data[key] = value
-	return kv.save()
-}
-
 func (kv *SimpleKV) save() error {
 	jsonData, err := json.Marshal(kv.data)
 	if err != nil {
@@ -56,6 +49,39 @@ func (kv *SimpleKV) Get(key string) (string, bool) {
 func (kv *SimpleKV) Delete(key string) error {
 	kv.dataLock.Lock()
 	defer kv.dataLock.Unlock()
+	v, ok := kv.data[key]
+	if !ok {
+		return nil
+	}
 	delete(kv.data, key)
-	return kv.save()
+	if err := kv.save(); err != nil {
+		kv.data[key] = v
+		return err
+	}
+	return nil
+}
+
+func (kv *SimpleKV) Set(key, value string) error {
+	kv.dataLock.Lock()
+	defer kv.dataLock.Unlock()
+	kv.data[key] = value
+	if err := kv.save(); err != nil {
+		delete(kv.data, key)
+		return err
+	}
+	return nil
+}
+
+func (kv *SimpleKV) SetIfNotExist(key, value string) (bool, error) {
+	kv.dataLock.Lock()
+	defer kv.dataLock.Unlock()
+	if _, ok := kv.data[key]; ok {
+		return false, nil
+	}
+	kv.data[key] = value
+	if err := kv.save(); err != nil {
+		delete(kv.data, key)
+		return false, err
+	}
+	return true, nil
 }
