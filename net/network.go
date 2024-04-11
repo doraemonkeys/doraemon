@@ -294,8 +294,8 @@ func GetIpv4MaskByInterfaceName(name string) (net.IPMask, error) {
 func HexMaskToDotMask(hexMask string) string {
 	var dotMask string
 	for i := 0; i < len(hexMask); i += 2 {
-		num, _ := doraemon.HexToInt(hexMask[i : i+2])
-		dotMask += strconv.Itoa(num) + "."
+		num := doraemon.HexToInt(hexMask[i : i+2])
+		dotMask += strconv.Itoa(int(num)) + "."
 	}
 	return dotMask[:len(dotMask)-1]
 }

@@ -4,14 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // 十六进制转换为十进制
-func HexToInt(hex string) (int, error) {
-	if len(hex) > 2 {
-		if string(hex[0:2]) == "0x" || string(hex[0:2]) == "0X" {
-			hex = hex[2:]
-		}
+func HexToInt2(hex string) (int, error) {
+	if len(hex) > 2 && (strings.HasPrefix(hex, "0x") || strings.HasPrefix(hex, "0X")) {
+		hex = hex[2:]
 	}
 	var result int
 	for _, v := range hex {
@@ -28,6 +27,17 @@ func HexToInt(hex string) (int, error) {
 		}
 	}
 	return result, nil
+}
+
+func HexToInt(hex string) int64 {
+	if strings.HasPrefix(hex, "0x") || strings.HasPrefix(hex, "0X") {
+		hex = hex[2:]
+	}
+	num, err := strconv.ParseInt(hex, 16, 64)
+	if err != nil {
+		panic(err)
+	}
+	return num
 }
 
 // 字符转整型
