@@ -165,6 +165,8 @@ func IsFile(path string) (is bool, exist bool, err error) {
 }
 
 // windows下读取某些非正常快捷方式文件时会报错 read xxx : Incorrect function.
+// 这种快捷方式使用os.Stat()查询会报告为文件夹(IsDir()会返回true)，
+// 但是使用os.ReadDir读取父文件夹来查询这个子快捷方式时，IsDir() 会返回false。
 const WindowsReadLnkFileErrorKeyWords = "Incorrect function"
 
 // 复制文件到指定目录
