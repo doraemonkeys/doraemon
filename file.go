@@ -116,6 +116,19 @@ func GetAllNamesInPath(path string) ([]string, error) {
 	return all, nil
 }
 
+// 获取path路径下的文件(含后缀)和文件夹名称，以及是否为文件夹
+func GetAllNamesInPath2(path string) ([]Pair[string, bool], error) {
+	DirEntry, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var all []Pair[string, bool]
+	for _, v := range DirEntry {
+		all = append(all, Pair[string, bool]{v.Name(), v.IsDir()})
+	}
+	return all, nil
+}
+
 // 文件或文件夹是否存在
 func FileOrDirIsExist(path string) bool {
 	_, err := os.Stat(path)
