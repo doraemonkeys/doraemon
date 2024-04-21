@@ -164,6 +164,9 @@ func IsFile(path string) (is bool, exist bool, err error) {
 	return !Info.IsDir(), true, nil
 }
 
+// windows下读取某些非正常快捷方式文件时会报错 read xxx : Incorrect function.
+const WindowsReadLnkFileErrorKeyWords = "Incorrect function"
+
 // 复制文件到指定目录
 //
 // overwrite为true时，如果目标文件存在则覆盖，
@@ -193,7 +196,7 @@ func CopyFile(src, dst string, overwrite bool) error {
 
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("copy file error: %v", err)
 	}
 	dstFile.Close()
 	srcInfo, _ := srcFile.Stat()
