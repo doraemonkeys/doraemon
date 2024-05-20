@@ -3,7 +3,7 @@ package doraemon
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"time"
 )
@@ -227,6 +227,5 @@ func GetRandomUserAgent() string {
 		"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Maxthon/4.4.3.4000 Chrome/30.0.1599.101 Safari/537.36",
 		"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.122 UBrowser/4.0.3214.0 Safari/537.36",
 	}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()/2 - 3))
-	return userAgentList[r.Intn(len(userAgentList))]
+	return userAgentList[rand.IntN(len(userAgentList))]
 }
