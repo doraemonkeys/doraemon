@@ -67,7 +67,7 @@ type StdLogger interface {
 	Panicln(...interface{})
 }
 
-// ReadAll reads from reader until buf is full or an error occurs.
+// ReadAll reads from reader until EOF or an error occurs.
 // If buf is full before EOF, ReadAll returns an error.
 func ReadAll(reader io.Reader, buf []byte) (n int, err error) {
 	var nn int

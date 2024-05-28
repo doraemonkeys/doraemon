@@ -4,27 +4,12 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 )
 
-// 获取文件的SHA1值(字母小写)
-func GetFileSha1(filename string) (string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-	hash := sha1.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-// GetSha1 获取[]byte的SHA1值(字母小写)
+// Deprecated: use SHA1 instead
 func GetSha1(data []byte) ([]byte, error) {
 	hash := sha1.New()
 	if _, err := hash.Write(data); err != nil {
@@ -33,27 +18,8 @@ func GetSha1(data []byte) ([]byte, error) {
 	return hash.Sum(nil), nil
 }
 
-// 获取文件md5
-func GetFileMd5(filename string) ([]byte, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	hash := md5.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return nil, err
-	}
-	//将[]byte转成16进制的字符串表示
-	//var hex string = "48656c6c6f"//(hello)
-	//其中每两个字符对应于其ASCII值的十六进制表示,例如:
-	//0x48 0x65 0x6c 0x6c 0x6f = "Hello"
-	//fmt.Printf("%x\n", hash.Sum(nil))
-	return hash.Sum(nil), nil
-}
-
-// 计算md5
-func GatMd5(content []byte) ([]byte, error) {
+// Deprecated: use MD5 instead
+func GetMd5(content []byte) ([]byte, error) {
 	hash := md5.New()
 	_, err := hash.Write(content)
 	if err != nil {
@@ -62,15 +28,16 @@ func GatMd5(content []byte) ([]byte, error) {
 	return hash.Sum(nil), nil
 }
 
-func GatMd5Hex(content []byte) (string, error) {
-	md5, err := GatMd5(content)
+// Deprecated: use MD5Hex instead
+func GetMd5Hex(content []byte) (string, error) {
+	md5, err := GetMd5(content)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%x", md5), nil
 }
 
-// 计算sha256
+// Deprecated: use SHA256 instead
 func GetSha256(content []byte) ([]byte, error) {
 	hash := sha256.New()
 	_, err := hash.Write(content)
@@ -78,4 +45,74 @@ func GetSha256(content []byte) ([]byte, error) {
 		return nil, err
 	}
 	return hash.Sum(nil), nil
+}
+
+func ComputeSHA1(content io.Reader) ([]byte, error) {
+	hash := sha1.New()
+	_, err := io.Copy(hash, content)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
+}
+
+func ComputeSHA1Hex(content io.Reader) (string, error) {
+	sha1, err := ComputeSHA1(content)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha1), nil
+}
+
+func ComputeFileSha1(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return ComputeSHA1(file)
+}
+
+func ComputeMD5(content io.Reader) ([]byte, error) {
+	hash := md5.New()
+	_, err := io.Copy(hash, content)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
+}
+
+func ComputeMD5Hex(content io.Reader) (string, error) {
+	md5, err := ComputeMD5(content)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", md5), nil
+}
+
+// 获取文件md5
+func ComputeFileMd5(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return ComputeMD5(file)
+}
+
+func ComputeSHA256(content io.Reader) ([]byte, error) {
+	hash := sha256.New()
+	_, err := io.Copy(hash, content)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
+}
+
+func ComputeSHA256Hex(content io.Reader) (string, error) {
+	sha256, err := ComputeSHA256(content)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256), nil
 }
