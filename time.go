@@ -1,7 +1,9 @@
 package doraemon
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,4 +26,19 @@ func GetFormatedTimeFromUnixMilliStr(rawTime string, format string) (string, err
 // if rawTime is "" , return current time。
 func GetFormatedTimeFromUnixMilli(rawTime int64, format string) string {
 	return time.UnixMilli(rawTime).In(time.Local).Format(format)
+}
+
+// TrackTime calculates the elapsed time since the given time and prints it.
+//
+// Usage:
+//
+//	defer TrackTime(time.Now())
+func TrackTime(pre time.Time, message ...string) time.Duration {
+	if len(message) == 0 {
+		message = append(message, "Time elapsed:")
+	}
+	elapsed := time.Since(pre)
+	out := strings.Join(message, " ") + " " + elapsed.String()
+	fmt.Println(out)
+	return elapsed
 }
