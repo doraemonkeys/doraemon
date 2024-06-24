@@ -2,6 +2,7 @@ package doraemon
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -575,4 +576,33 @@ func UnCompress(zipFile, dest string) error {
 		}
 	}
 	return nil
+}
+
+func InitJsonConfig[T any](configFile string, createDefault func(path string) error) (*T, error) {
+	exist := FileIsExist(configFile)
+	var config T
+	if !exist && createDefault != nil {
+		c, err := json.Marshal(config)
+		if err != nil {
+			return nil, err
+		}
+		err = os.WriteFile(configFile, c, 0666)
+		if err != nil {
+			return nil, err
+		}
+	} else if !exist {
+		err := createDefault(configFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+	configFileContent, err := os.ReadFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(configFileContent, &config)
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
 }
