@@ -579,18 +579,24 @@ func UnCompress(zipFile, dest string) error {
 }
 
 func InitJsonConfig[T any](configFile string, createDefault func(path string) error) (*T, error) {
-	exist := FileIsExist(configFile)
 	var config T
-	if !exist && createDefault != nil {
-		c, err := json.Marshal(config)
-		if err != nil {
-			return nil, err
+
+	if createDefault == nil {
+		createDefault = func(path string) error {
+			c, err := json.Marshal(config)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(path, c, 0666)
+			if err != nil {
+				return err
+			}
+			return nil
 		}
-		err = os.WriteFile(configFile, c, 0666)
-		if err != nil {
-			return nil, err
-		}
-	} else if !exist {
+	}
+
+	exist := FileIsExist(configFile)
+	if !exist {
 		err := createDefault(configFile)
 		if err != nil {
 			return nil, err
