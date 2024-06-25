@@ -587,14 +587,18 @@ func InitJsonConfig[T any](configFile string, createDefault func(path string) er
 			if err != nil {
 				return err
 			}
-			err = os.WriteFile(path, c, 0666)
-			if err != nil {
-				return err
-			}
-			return nil
+			return os.WriteFile(path, c, 0666)
 		}
 	}
+	return InitConfig[T](configFile, createDefault, json.Unmarshal)
+}
 
+func InitConfig[T any](
+	configFile string,
+	createDefault func(path string) error,
+	unmarshal func(data []byte, v any) error,
+) (*T, error) {
+	var config T
 	exist := FileIsExist(configFile)
 	if !exist {
 		err := createDefault(configFile)
@@ -606,7 +610,7 @@ func InitJsonConfig[T any](configFile string, createDefault func(path string) er
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(configFileContent, &config)
+	err = unmarshal(configFileContent, &config)
 	if err != nil {
 		return nil, err
 	}
