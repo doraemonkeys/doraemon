@@ -64,3 +64,58 @@ func findStructEmptyStringField(v reflect.Value, ignores map[string]bool) string
 	}
 	return ""
 }
+
+// 创建一个空的结构体实例，只能传入结构体类型
+func createStructEmptyInstance(structType reflect.Type) interface{} {
+	value := reflect.New(structType).Elem()
+	if value.Kind() != reflect.Struct {
+		panic("createStructEmptyInstance: value is not a struct")
+	}
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		if !field.CanSet() {
+			continue
+		}
+		if field.Kind() == reflect.Struct {
+			field.Set(reflect.ValueOf(createStructEmptyInstance(field.Type())))
+		} else {
+			field.Set(reflect.ValueOf(CreateEmptyInstance(field.Type())))
+		}
+	}
+	return value.Interface()
+}
+
+const defaultMapKey = "key"
+
+func CreateEmptyInstance(rType reflect.Type) interface{} {
+	value := reflect.New(rType).Elem()
+	if value.Kind() == reflect.Struct {
+		return createStructEmptyInstance(rType)
+	}
+	if !value.CanSet() {
+		return value.Interface()
+	}
+	switch value.Kind() {
+	case reflect.Slice:
+		slice := reflect.MakeSlice(rType, 1, 1)
+		slice.Index(0).Set(reflect.ValueOf(CreateEmptyInstance(rType.Elem())))
+		return slice.Interface()
+	case reflect.Map:
+		m := reflect.MakeMap(rType)
+		if rType.Key().Kind() == reflect.String {
+			m.SetMapIndex(reflect.ValueOf(defaultMapKey), reflect.ValueOf(CreateEmptyInstance(rType.Elem())))
+		} else {
+			m.SetMapIndex(reflect.ValueOf(CreateEmptyInstance(rType.Key())), reflect.ValueOf(CreateEmptyInstance(rType.Elem())))
+		}
+		return m.Interface()
+	case reflect.Ptr:
+		instance := CreateEmptyInstance(rType.Elem())
+		ptrInstance := reflect.New(rType.Elem())
+		ptrInstance.Elem().Set(reflect.ValueOf(instance))
+		return ptrInstance.Interface()
+	case reflect.Struct:
+		return createStructEmptyInstance(rType)
+	default:
+		return value.Interface()
+	}
+}

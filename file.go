@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
@@ -583,7 +584,7 @@ func InitJsonConfig[T any](configFile string, createDefault func(path string) er
 
 	if createDefault == nil {
 		createDefault = func(path string) error {
-			c, err := json.MarshalIndent(config, "", "    ")
+			c, err := json.MarshalIndent(CreateEmptyInstance(reflect.TypeOf(config)), "", "    ")
 			if err != nil {
 				return err
 			}
