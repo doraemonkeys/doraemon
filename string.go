@@ -105,8 +105,9 @@ func SplitBySpaceLimit2(line string, spaceLimit int) []string {
 // 如果为0，则使用任意数量的空格来分隔字段。
 // 需要保证第一行是字段名, 且后面每行都是有效的记录。
 //
-// 例如，下面的文本行：
-// Name Access  Availability  BlockSize
+// # 例如，下面的文本行：
+//
+//	Name Access  Availability  BlockSize
 //
 // C:     3       0           4096
 //
@@ -117,14 +118,14 @@ func SplitBySpaceLimit2(line string, spaceLimit int) []string {
 // F:            1           4096
 //
 // 将被解析为：
+//
 // fields = ["Name", "Access", "Availability", "BlockSize"]
 //
-// records = [
-//
-//	["C:", "3", "0", "4096"],
-//	["D:", "3", "", "4096"],
-//	["E:", "3", "1", "4096"],
-//	["F:", "", "1", "4096"],
+//	 records = [
+//		["C:", "3", "0", "4096"],
+//		["D:", "3", "", "4096"],
+//		["E:", "3", "1", "4096"],
+//		["F:", "", "1", "4096"],
 //
 // ]
 func ScanFields(

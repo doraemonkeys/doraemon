@@ -67,15 +67,18 @@ type StdLogger interface {
 	Panicln(...interface{})
 }
 
-// ReadAll reads from reader until EOF or an error occurs.
-// If buf is full before EOF, ReadAll returns an error.
-func ReadAll(reader io.Reader, buf []byte) (n int, err error) {
+// ReadAllWithLimitBuffer reads from reader until EOF or an error occurs.
+// If buf is full before EOF, ReadAllWithLimitBuffer returns an error.
+func ReadAllWithLimitBuffer(reader io.Reader, buf []byte) (n int, err error) {
+	if buf == nil {
+		return 0, errors.New("buffer is nil")
+	}
 	var nn int
 	for {
-		if n == len(buf) {
+		nn, err = reader.Read(buf[n:])
+		if n == len(buf) && nn == 0 && err != io.EOF {
 			return n, errors.New("buffer full")
 		}
-		nn, err = reader.Read(buf[n:])
 		n += nn
 		if err != nil {
 			if err == io.EOF {
