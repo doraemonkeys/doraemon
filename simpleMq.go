@@ -40,12 +40,41 @@ func (b *SimpleMQ[T]) PushSlice(values []T) {
 }
 
 // popAll removes and returns all elements from the queue.
+// The caller must get the semaphore before calling this function.
 func (b *SimpleMQ[T]) popAll() []T {
 	var newBuffer = make([]T, 0, b.bufMinCap)
 	var ret []T
 	b.bufferLock.Lock()
 	ret = b.buffer
 	b.buffer = newBuffer
+	b.bufferLock.Unlock()
+	return ret
+}
+
+func (b *SimpleMQ[T]) clearSeamChan() {
+	select {
+	case <-b.popallSemaChan:
+	default:
+	}
+}
+
+func (b *SimpleMQ[T]) enableSeamChan() {
+	select {
+	case b.popallSemaChan <- struct{}{}:
+	default:
+	}
+}
+
+func (b *SimpleMQ[T]) SwapBuffer(newBuffer []T) []T {
+	var ret []T
+	b.bufferLock.Lock()
+	ret = b.buffer
+	b.buffer = newBuffer
+	if len(newBuffer) == 0 {
+		b.clearSeamChan()
+	} else {
+		b.enableSeamChan()
+	}
 	b.bufferLock.Unlock()
 	return ret
 }
@@ -64,4 +93,22 @@ func (b *SimpleMQ[T]) TryPopAll() ([]T, bool) {
 	default:
 		return nil, false
 	}
+}
+
+func (b *SimpleMQ[T]) Len() int {
+	b.bufferLock.Lock()
+	defer b.bufferLock.Unlock()
+	return len(b.buffer)
+}
+
+func (b *SimpleMQ[T]) Cap() int {
+	b.bufferLock.Lock()
+	defer b.bufferLock.Unlock()
+	return cap(b.buffer)
+}
+
+func (b *SimpleMQ[T]) IsEmpty() bool {
+	b.bufferLock.Lock()
+	defer b.bufferLock.Unlock()
+	return len(b.buffer) == 0
 }
