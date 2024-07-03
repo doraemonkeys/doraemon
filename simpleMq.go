@@ -32,7 +32,7 @@ func (b *SimpleMQ[T]) PushSlice(values []T) {
 	b.buffer = append(b.buffer, values...)
 	if len(b.buffer) == len(values) {
 		if len(b.popallSemaChan) != 0 {
-			panic("unexpected situation: len(b.semaChan) != 0")
+			panic("unexpected situation: semaChan != 0")
 		}
 		b.popallSemaChan <- struct{}{}
 	}
