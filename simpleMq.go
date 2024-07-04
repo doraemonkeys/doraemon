@@ -36,6 +36,9 @@ func (b *SimpleMQ[T]) Push(v ...T) {
 
 // PushSlice adds a slice of elements to the queue.
 func (b *SimpleMQ[T]) PushSlice(values []T) {
+	if len(values) == 0 {
+		return
+	}
 	b.bufferLock.Lock()
 	*b.buffer = append(*b.buffer, values...)
 	if len(*b.buffer) == len(values) {
