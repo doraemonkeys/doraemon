@@ -20,11 +20,6 @@ func BytesToString(b []byte) string {
 	return unsafe.String(&b[0], len(b))
 }
 
-// StrLen统计字符串长度
-func StrLen(str string) int {
-	return len([]rune(str))
-}
-
 func StringAsPointer(s string) (unsafe.Pointer, int) {
 	data := unsafe.StringData(s)
 	return unsafe.Pointer(data), len(s)
