@@ -579,7 +579,10 @@ func UnCompress(zipFile, dest string) error {
 	return nil
 }
 
-func InitJsonConfig[T any](configFile string, createDefault func(path string) error) (*T, error) {
+// InitJsonConfig initializes a JSON configuration object of type T from a file.
+// If the file doesn't exist, it creates a default file using the createDefault function (or a default create function if not provided).
+// It uses JSON unmarshalling to parse the file content into the config object.
+func InitJsonConfig[T any](configFilePath string, createDefault func(path string) error) (*T, error) {
 	var config T
 
 	if createDefault == nil {
@@ -591,22 +594,48 @@ func InitJsonConfig[T any](configFile string, createDefault func(path string) er
 			return os.WriteFile(path, c, 0666)
 		}
 	}
-	return InitConfig[T](configFile, createDefault, json.Unmarshal)
+	return InitConfig[T](configFilePath, createDefault, json.Unmarshal)
 }
 
+const DevLocalConfigFileKeyWord = ".local.dev"
+
+// InitConfig initializes a configuration object of type T from a specified file.
+// If a development-specific configuration file exists (with a ".local.dev" suffix),
+// it will be loaded instead. If the specified configuration file does not exist,
+// it will be created using the provided createDefault function.
+// The unmarshal function is used to parse the configuration file content into the object.
 func InitConfig[T any](
-	configFile string,
+	configFilePath string,
 	createDefault func(path string) error,
 	unmarshal func(data []byte, v any) error,
 ) (*T, error) {
-	var config T
-	exist := FileIsExist(configFile)
-	if !exist {
-		err := createDefault(configFile)
+	devConfigFilePath := generateDevConfigPath(configFilePath)
+	if FileIsExist(devConfigFilePath) {
+		return loadConfigFromFile[T](devConfigFilePath, unmarshal)
+	}
+	if !FileIsExist(configFilePath) {
+		err := createDefault(configFilePath)
 		if err != nil {
 			return nil, err
 		}
 	}
+	return loadConfigFromFile[T](configFilePath, unmarshal)
+}
+
+func generateDevConfigPath(configFile string) string {
+	var baseDir = filepath.Dir(configFile)
+	var fileName = filepath.Base(configFile)
+	var ext = filepath.Ext(fileName)
+	var devConfigName = strings.TrimSuffix(fileName, ext) + DevLocalConfigFileKeyWord + ext
+	var devConfigFilePath = filepath.Join(baseDir, devConfigName)
+	return devConfigFilePath
+}
+
+func loadConfigFromFile[T any](
+	configFile string,
+	unmarshal func(data []byte, v any) error,
+) (*T, error) {
+	var config T
 	configFileContent, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, err
