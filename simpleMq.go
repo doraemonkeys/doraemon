@@ -130,3 +130,15 @@ func (b *SimpleMQ[T]) IsEmpty() bool {
 	defer b.bufferLock.Unlock()
 	return len(*b.buffer) == 0
 }
+
+func (b *SimpleMQ[T]) LenNoLock() int {
+	return len(*b.buffer)
+}
+
+func (b *SimpleMQ[T]) CapNoLock() int {
+	return cap(*b.buffer)
+}
+
+func (b *SimpleMQ[T]) IsEmptyNoLock() bool {
+	return len(*b.buffer) == 0
+}
