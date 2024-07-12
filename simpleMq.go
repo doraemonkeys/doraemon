@@ -1,6 +1,9 @@
 package doraemon
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 // SimpleMQ is a simple message queue with a minimum buffer capacity.
 type SimpleMQ[T any] struct {
@@ -102,6 +105,16 @@ func (b *SimpleMQ[T]) RecycleBuffer(buffer *[]T) {
 func (b *SimpleMQ[T]) WaitPopAll() *[]T {
 	<-b.popallSemaChan
 	return b.popAll()
+}
+
+// WaitPopAllWithContext like WaitPopAll but with a context.
+func (b *SimpleMQ[T]) WaitPopAllWithContext(ctx context.Context) (*[]T, bool) {
+	select {
+	case <-b.popallSemaChan:
+		return b.popAll(), true
+	case <-ctx.Done():
+		return nil, false
+	}
 }
 
 // TryPopAll tries to remove and return all elements from the queue without blocking. Returns the elements and a boolean indicating success.
