@@ -98,6 +98,7 @@ func (b *SimpleMQ[T]) RecycleBuffer(buffer *[]T) {
 }
 
 // WaitPopAll waits for elements to be available and then removes and returns all elements from the queue.
+// After calling this function, you can call RecycleBuffer to recycle the buffer.
 func (b *SimpleMQ[T]) WaitPopAll() *[]T {
 	<-b.popallSemaChan
 	return b.popAll()
