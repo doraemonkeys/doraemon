@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,8 +32,8 @@ func TestCreateToken(t *testing.T) {
 	secretKey := []byte("secret")
 	jwtInstance := NewHS256JWT(secretKey)
 	signInfo := []byte("signInfo")
-	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
 	}
 
@@ -46,7 +46,7 @@ func TestCreateDefaultToken(t *testing.T) {
 	secretKey := []byte("secret")
 	jwtInstance := NewHS256JWT(secretKey)
 	signInfo := []byte("signInfo")
-	expiresAt := time.Now().Add(time.Hour).Unix()
+	expiresAt := time.Now().Add(time.Hour)
 
 	tokenString, err := jwtInstance.CreateDefaultToken(signInfo, expiresAt)
 	assert.NoError(t, err)
@@ -70,8 +70,8 @@ func TestParseToken(t *testing.T) {
 	secretKey := []byte("secret")
 	jwtInstance := NewHS256JWT(secretKey)
 	signInfo := []byte("signInfo")
-	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
 	}
 
@@ -89,10 +89,10 @@ func TestVerifyToken(t *testing.T) {
 	secretKey := []byte("secret")
 	jwtInstance := NewHS256JWT(secretKey)
 	signInfo := []byte("signInfo")
-	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
-		Audience:  "audience",
+		Audience:  []string{"audience"},
 		Subject:   "subject",
 	}
 
@@ -108,8 +108,8 @@ func TestECDSAToken(t *testing.T) {
 	assert.NoError(t, err)
 	jwtInstance := NewES256JWT(privateKey)
 	signInfo := []byte("signInfo")
-	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
 	}
 
@@ -140,9 +140,9 @@ func TestParseToken2(t *testing.T) {
 	jwtService := NewES256JWT(privateKey)
 
 	// Create a token with a specific issuer
-	claims := jwt.StandardClaims{
+	claims := jwt.RegisteredClaims{
 		Issuer:    "test-issuer",
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 	signInfo := []byte("test-sign-info")
 	tokenString, err := jwtService.CreateToken(signInfo, claims)
@@ -162,9 +162,9 @@ func TestParseToken2(t *testing.T) {
 	}
 
 	// Create another token with a different issuer
-	claimsDifferentIssuer := jwt.StandardClaims{
+	claimsDifferentIssuer := jwt.RegisteredClaims{
 		Issuer:    "different-issuer",
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 	tokenStringDifferentIssuer, err := jwtService.CreateToken(signInfo, claimsDifferentIssuer)
 	if err != nil {
@@ -193,9 +193,9 @@ func TestParseToken_IssuerMismatch(t *testing.T) {
 	jwtInstance := NewES256JWT(privateKey)
 
 	// Define claims with a specific issuer
-	claims := jwt.StandardClaims{
+	claims := jwt.RegisteredClaims{
 		Issuer:    "valid-issuer",
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 
 	// Create a token with the specified claims
@@ -244,15 +244,15 @@ func TestVerifyTokenWithDifferentIssuer(t *testing.T) {
 
 	// Create a token with a specific issuer
 	signInfo := []byte("signInfo")
-	claims := jwt.StandardClaims{
+	claims := jwt.RegisteredClaims{
 		Issuer:    "issuer1",
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
 	assert.NoError(t, err)
 
 	// Create a different claims object with a different issuer
-	claimsDifferentIssuer := jwt.StandardClaims{
+	claimsDifferentIssuer := jwt.RegisteredClaims{
 		Issuer: "issuer2",
 	}
 
@@ -272,9 +272,9 @@ func TestVerifyTokenWithSameIssuer(t *testing.T) {
 
 	// Create a token with a specific issuer
 	signInfo := []byte("signInfo")
-	claims := jwt.StandardClaims{
+	claims := jwt.RegisteredClaims{
 		Issuer:    "issuer1",
-		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
 	assert.NoError(t, err)

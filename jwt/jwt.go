@@ -5,9 +5,10 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/exp/slices"
+	"github.com/golang-jwt/jwt/v5"
+	"slices"
 )
 
 type JWT struct {
@@ -17,7 +18,7 @@ type JWT struct {
 
 type CustomClaims struct {
 	SignInfo []byte
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 var _ jwt.Claims = &CustomClaims{}
@@ -62,18 +63,18 @@ func NewES256JWT(secretKey *ecdsa.PrivateKey) *JWT {
 	return ret
 }
 
-func (j *JWT) CreateToken(signInfo []byte, claims jwt.StandardClaims) (string, error) {
+func (j *JWT) CreateToken(signInfo []byte, claims jwt.RegisteredClaims) (string, error) {
 	customClaims := &CustomClaims{
-		SignInfo:       signInfo,
-		StandardClaims: claims,
+		SignInfo:         signInfo,
+		RegisteredClaims: claims,
 	}
 	token := jwt.NewWithClaims(j.SigningAlgo, customClaims)
 	return token.SignedString(j.SecretKey)
 }
 
-func (j *JWT) CreateDefaultToken(signInfo []byte, expiresAt int64) (string, error) {
-	claims := jwt.StandardClaims{
-		ExpiresAt: expiresAt,
+func (j *JWT) CreateDefaultToken(signInfo []byte, expiresAt time.Time) (string, error) {
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
 	}
 	return j.CreateToken(signInfo, claims)
 }
@@ -118,7 +119,7 @@ func (j *JWT) VerifyTokenOnlySignInfo(tokenString string, signInfo []byte) error
 	return nil
 }
 
-func (j *JWT) VerifyToken(tokenString string, signInfo []byte, claims jwt.StandardClaims) error {
+func (j *JWT) VerifyToken(tokenString string, signInfo []byte, claims jwt.RegisteredClaims) error {
 	claimsParsed, err := j.ParseToken(tokenString)
 	if err != nil {
 		return err
@@ -126,7 +127,7 @@ func (j *JWT) VerifyToken(tokenString string, signInfo []byte, claims jwt.Standa
 	if !slices.Equal(claimsParsed.SignInfo, signInfo) {
 		return fmt.Errorf("invalid signInfo")
 	}
-	if claimsParsed.Audience != claims.Audience {
+	if !slices.Equal(claimsParsed.Audience, claims.Audience) {
 		return fmt.Errorf("invalid audience")
 	}
 	if claimsParsed.Issuer != claims.Issuer {
