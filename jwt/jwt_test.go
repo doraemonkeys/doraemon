@@ -16,8 +16,8 @@ func TestNewHS256JWT(t *testing.T) {
 	secretKey := []byte("secret")
 	jwtInstance, _ := NewHS256JWT[string](secretKey)
 	assert.NotNil(t, jwtInstance)
-	assert.Equal(t, jwt.SigningMethodHS256, jwtInstance.SigningAlgo)
-	assert.Equal(t, secretKey, jwtInstance.SecretKey)
+	assert.Equal(t, jwt.SigningMethodHS256, jwtInstance.signingAlgo)
+	assert.Equal(t, secretKey, jwtInstance.secretKey)
 }
 
 func TestNewES256JWT(t *testing.T) {
@@ -25,8 +25,8 @@ func TestNewES256JWT(t *testing.T) {
 	assert.NoError(t, err)
 	jwtInstance, _ := NewES256JWT[string](privateKey)
 	assert.NotNil(t, jwtInstance)
-	assert.Equal(t, jwt.SigningMethodES256, jwtInstance.SigningAlgo)
-	assert.Equal(t, privateKey, jwtInstance.SecretKey)
+	assert.Equal(t, jwt.SigningMethodES256, jwtInstance.signingAlgo)
+	assert.Equal(t, privateKey, jwtInstance.secretKey)
 }
 
 func TestCreateToken(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 )
 
 type JWT[T comparable] struct {
-	SecretKey   any
-	SigningAlgo jwt.SigningMethod
+	secretKey   any
+	signingAlgo jwt.SigningMethod
 }
 
 type CustomClaims[T comparable] struct {
@@ -49,8 +49,8 @@ func NewJWT[T comparable](secretKey any, signingAlgo jwt.SigningMethod) (*JWT[T]
 	}
 
 	return &JWT[T]{
-		SecretKey:   secretKey,
-		SigningAlgo: signingAlgo,
+		secretKey:   secretKey,
+		signingAlgo: signingAlgo,
 	}, nil
 }
 
@@ -68,8 +68,8 @@ func (j *JWT[T]) CreateToken(signInfo T, claims jwt.RegisteredClaims) (string, e
 		SignInfo:         signInfo,
 		RegisteredClaims: claims,
 	}
-	token := jwt.NewWithClaims(j.SigningAlgo, customClaims)
-	return token.SignedString(j.SecretKey)
+	token := jwt.NewWithClaims(j.signingAlgo, customClaims)
+	return token.SignedString(j.secretKey)
 }
 
 func (j *JWT[T]) CreateDefaultToken(signInfo T, expiresAt time.Time) (string, error) {
@@ -80,23 +80,23 @@ func (j *JWT[T]) CreateDefaultToken(signInfo T, expiresAt time.Time) (string, er
 }
 
 func (j *JWT[T]) ParseToken(tokenString string) (*CustomClaims[T], error) {
-	return j.ParseTokenWithKeyFunc(tokenString, func(token *jwt.Token) (any, error) {
-		switch j.SigningAlgo.(type) {
+	return j.ParseTokenWithKeyFunc(tokenString, func(j *JWT[T], token *jwt.Token) (any, error) {
+		switch j.signingAlgo.(type) {
 		case *jwt.SigningMethodHMAC:
-			return j.SecretKey.([]byte), nil
+			return j.secretKey.([]byte), nil
 		case *jwt.SigningMethodECDSA:
-			return j.SecretKey.(*ecdsa.PrivateKey).Public(), nil
+			return j.secretKey.(*ecdsa.PrivateKey).Public(), nil
 		case *jwt.SigningMethodRSA:
-			return j.SecretKey.(*rsa.PrivateKey).Public(), nil
+			return j.secretKey.(*rsa.PrivateKey).Public(), nil
 		default:
-			return nil, fmt.Errorf("unexpected signing method: %v", j.SigningAlgo)
+			return nil, fmt.Errorf("unexpected signing method: %v", j.signingAlgo)
 		}
 	})
 }
 
-func (j *JWT[T]) ParseTokenWithKeyFunc(tokenString string, keyFunc func(token *jwt.Token) (any, error)) (*CustomClaims[T], error) {
+func (j *JWT[T]) ParseTokenWithKeyFunc(tokenString string, keyFunc func(j *JWT[T], token *jwt.Token) (any, error)) (*CustomClaims[T], error) {
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims[T]{}, func(t *jwt.Token) (any, error) {
-		return keyFunc(t)
+		return keyFunc(j, t)
 	})
 	if err != nil {
 		return nil, err
