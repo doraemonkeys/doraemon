@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"slices"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 
 func TestNewHS256JWT(t *testing.T) {
 	secretKey := []byte("secret")
-	jwtInstance := NewHS256JWT(secretKey)
+	jwtInstance, _ := NewHS256JWT[string](secretKey)
 	assert.NotNil(t, jwtInstance)
 	assert.Equal(t, jwt.SigningMethodHS256, jwtInstance.SigningAlgo)
 	assert.Equal(t, secretKey, jwtInstance.SecretKey)
@@ -22,7 +23,7 @@ func TestNewHS256JWT(t *testing.T) {
 func TestNewES256JWT(t *testing.T) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	assert.NoError(t, err)
-	jwtInstance := NewES256JWT(privateKey)
+	jwtInstance, _ := NewES256JWT[string](privateKey)
 	assert.NotNil(t, jwtInstance)
 	assert.Equal(t, jwt.SigningMethodES256, jwtInstance.SigningAlgo)
 	assert.Equal(t, privateKey, jwtInstance.SecretKey)
@@ -30,8 +31,8 @@ func TestNewES256JWT(t *testing.T) {
 
 func TestCreateToken(t *testing.T) {
 	secretKey := []byte("secret")
-	jwtInstance := NewHS256JWT(secretKey)
-	signInfo := []byte("signInfo")
+	jwtInstance, _ := NewHS256JWT[string](secretKey)
+	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
@@ -44,8 +45,8 @@ func TestCreateToken(t *testing.T) {
 
 func TestCreateDefaultToken(t *testing.T) {
 	secretKey := []byte("secret")
-	jwtInstance := NewHS256JWT(secretKey)
-	signInfo := []byte("signInfo")
+	jwtInstance, _ := NewHS256JWT[string](secretKey)
+	signInfo := "signInfo"
 	expiresAt := time.Now().Add(time.Hour)
 
 	tokenString, err := jwtInstance.CreateDefaultToken(signInfo, expiresAt)
@@ -56,7 +57,7 @@ func TestCreateDefaultToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, signInfo, parsedClaims.SignInfo)
 
-	signInfo2 := []byte("signInfo2")
+	signInfo2 := "signInfo2"
 	tokenString2, err := jwtInstance.CreateDefaultToken(signInfo2, expiresAt)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, tokenString2)
@@ -68,8 +69,8 @@ func TestCreateDefaultToken(t *testing.T) {
 
 func TestParseToken(t *testing.T) {
 	secretKey := []byte("secret")
-	jwtInstance := NewHS256JWT(secretKey)
-	signInfo := []byte("signInfo")
+	jwtInstance, _ := NewHS256JWT[string](secretKey)
+	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
@@ -87,8 +88,8 @@ func TestParseToken(t *testing.T) {
 
 func TestVerifyToken(t *testing.T) {
 	secretKey := []byte("secret")
-	jwtInstance := NewHS256JWT(secretKey)
-	signInfo := []byte("signInfo")
+	jwtInstance, _ := NewHS256JWT[string](secretKey)
+	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
@@ -106,8 +107,8 @@ func TestVerifyToken(t *testing.T) {
 func TestECDSAToken(t *testing.T) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	assert.NoError(t, err)
-	jwtInstance := NewES256JWT(privateKey)
-	signInfo := []byte("signInfo")
+	jwtInstance, _ := NewES256JWT[string](privateKey)
+	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
@@ -137,14 +138,14 @@ func TestParseToken2(t *testing.T) {
 		t.Fatalf("Failed to generate ECDSA key: %v", err)
 	}
 
-	jwtService := NewES256JWT(privateKey)
+	jwtService, _ := NewES256JWT[string](privateKey)
 
 	// Create a token with a specific issuer
 	claims := jwt.RegisteredClaims{
 		Issuer:    "test-issuer",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
-	signInfo := []byte("test-sign-info")
+	signInfo := "test-sign-info"
 	tokenString, err := jwtService.CreateToken(signInfo, claims)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
@@ -190,7 +191,7 @@ func TestParseToken_IssuerMismatch(t *testing.T) {
 	}
 
 	// Create a new JWT instance with ES256 algorithm
-	jwtInstance := NewES256JWT(privateKey)
+	jwtInstance, _ := NewES256JWT[string](privateKey)
 
 	// Define claims with a specific issuer
 	claims := jwt.RegisteredClaims{
@@ -199,7 +200,7 @@ func TestParseToken_IssuerMismatch(t *testing.T) {
 	}
 
 	// Create a token with the specified claims
-	tokenString, err := jwtInstance.CreateToken([]byte("signInfo"), claims)
+	tokenString, err := jwtInstance.CreateToken("signInfo", claims)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
 	}
@@ -217,7 +218,7 @@ func TestParseToken_IssuerMismatch(t *testing.T) {
 
 	// Create a token with a different issuer
 	claims.Issuer = "invalid-issuer"
-	tokenString, err = jwtInstance.CreateToken([]byte("signInfo"), claims)
+	tokenString, err = jwtInstance.CreateToken("signInfo", claims)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
 	}
@@ -240,10 +241,10 @@ func TestVerifyTokenWithDifferentIssuer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a new JWT instance with ES256 signing method
-	jwtInstance := NewES256JWT(privateKey)
+	jwtInstance, _ := NewES256JWT[string](privateKey)
 
 	// Create a token with a specific issuer
-	signInfo := []byte("signInfo")
+	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		Issuer:    "issuer1",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
@@ -268,10 +269,10 @@ func TestVerifyTokenWithSameIssuer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a new JWT instance with ES256 signing method
-	jwtInstance := NewES256JWT(privateKey)
+	jwtInstance, _ := NewES256JWT[string](privateKey)
 
 	// Create a token with a specific issuer
-	signInfo := []byte("signInfo")
+	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		Issuer:    "issuer1",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
@@ -282,4 +283,64 @@ func TestVerifyTokenWithSameIssuer(t *testing.T) {
 	// Verify the token with the same issuer claims
 	err = jwtInstance.VerifyToken(tokenString, signInfo, claims)
 	assert.NoError(t, err)
+}
+
+// TestJWT tests the creation and verification of JWT tokens.
+func TestJWT(t *testing.T) {
+	type SignInfo struct {
+		UserID string
+		Role   string
+	}
+	// Generate ECDSA private key for testing
+	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA key: %v", err)
+	}
+
+	// Create a new JWT instance using ES256 algorithm
+	jwtInstance, _ := NewES256JWT[SignInfo](ecdsaKey)
+
+	// Define signInfo and claims
+	signInfo := SignInfo{
+		UserID: "12345",
+		Role:   "admin",
+	}
+	expiresAt := time.Now().Add(1 * time.Hour)
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		Issuer:    "test_issuer",
+		Subject:   "test_subject",
+		Audience:  jwt.ClaimStrings{"test_audience"},
+	}
+
+	// Create token
+	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	if err != nil {
+		t.Fatalf("Failed to create token: %v", err)
+	}
+
+	// Parse and verify token
+	parsedClaims, err := jwtInstance.ParseToken(tokenString)
+	if err != nil {
+		t.Fatalf("Failed to parse token: %v", err)
+	}
+
+	// Verify signInfo
+	if parsedClaims.SignInfo != signInfo {
+		t.Fatalf("SignInfo mismatch: expected %v, got %v", signInfo, parsedClaims.SignInfo)
+	}
+
+	// Verify claims
+	if !parsedClaims.ExpiresAt.Equal(claims.ExpiresAt.Time) {
+		t.Fatalf("ExpiresAt mismatch: expected %v, got %v", claims.ExpiresAt, parsedClaims.ExpiresAt)
+	}
+	if parsedClaims.Issuer != claims.Issuer {
+		t.Fatalf("Issuer mismatch: expected %v, got %v", claims.Issuer, parsedClaims.Issuer)
+	}
+	if parsedClaims.Subject != claims.Subject {
+		t.Fatalf("Subject mismatch: expected %v, got %v", claims.Subject, parsedClaims.Subject)
+	}
+	if !slices.Equal(parsedClaims.Audience, claims.Audience) {
+		t.Fatalf("Audience mismatch: expected %v, got %v", claims.Audience, parsedClaims.Audience)
+	}
 }
