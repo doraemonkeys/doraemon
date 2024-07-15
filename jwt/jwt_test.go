@@ -32,13 +32,15 @@ func TestNewES256JWT(t *testing.T) {
 func TestCreateToken(t *testing.T) {
 	secretKey := []byte("secret")
 	jwtInstance, _ := NewHS256JWT[string](secretKey)
-	signInfo := "signInfo"
 	claims := jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
 	}
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = "signInfo"
+	claims2.RegisteredClaims = claims
 
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, tokenString)
 }
@@ -75,8 +77,11 @@ func TestParseToken(t *testing.T) {
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
 	}
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
 
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	assert.NoError(t, err)
 
 	parsedClaims, err := jwtInstance.ParseToken(tokenString)
@@ -97,10 +102,14 @@ func TestVerifyToken(t *testing.T) {
 		Subject:   "subject",
 	}
 
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
+
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	assert.NoError(t, err)
 
-	err = jwtInstance.VerifyToken(tokenString, signInfo, claims)
+	err = jwtInstance.VerifyToken(tokenString, claims2)
 	assert.NoError(t, err)
 }
 
@@ -113,9 +122,12 @@ func TestECDSAToken(t *testing.T) {
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		Issuer:    "test",
 	}
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
 
 	// Create token
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, tokenString)
 
@@ -127,7 +139,7 @@ func TestECDSAToken(t *testing.T) {
 	assert.Equal(t, claims.Issuer, parsedClaims.Issuer)
 
 	// Verify token
-	err = jwtInstance.VerifyToken(tokenString, signInfo, claims)
+	err = jwtInstance.VerifyToken(tokenString, claims2)
 	assert.NoError(t, err)
 }
 
@@ -146,7 +158,10 @@ func TestParseToken2(t *testing.T) {
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 	signInfo := "test-sign-info"
-	tokenString, err := jwtService.CreateToken(signInfo, claims)
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
+	tokenString, err := jwtService.CreateToken(claims2)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
 	}
@@ -167,7 +182,10 @@ func TestParseToken2(t *testing.T) {
 		Issuer:    "different-issuer",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
-	tokenStringDifferentIssuer, err := jwtService.CreateToken(signInfo, claimsDifferentIssuer)
+	claimsDifferentIssuer2 := CustomClaims[string]{}
+	claimsDifferentIssuer2.SignInfo = signInfo
+	claimsDifferentIssuer2.RegisteredClaims = claimsDifferentIssuer
+	tokenStringDifferentIssuer, err := jwtService.CreateToken(claimsDifferentIssuer2)
 	if err != nil {
 		t.Fatalf("Failed to create token with different issuer: %v", err)
 	}
@@ -198,9 +216,12 @@ func TestParseToken_IssuerMismatch(t *testing.T) {
 		Issuer:    "valid-issuer",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = "signInfo"
+	claims2.RegisteredClaims = claims
 
 	// Create a token with the specified claims
-	tokenString, err := jwtInstance.CreateToken("signInfo", claims)
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
 	}
@@ -218,7 +239,9 @@ func TestParseToken_IssuerMismatch(t *testing.T) {
 
 	// Create a token with a different issuer
 	claims.Issuer = "invalid-issuer"
-	tokenString, err = jwtInstance.CreateToken("signInfo", claims)
+	claims2.RegisteredClaims = claims
+
+	tokenString, err = jwtInstance.CreateToken(claims2)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
 	}
@@ -249,16 +272,22 @@ func TestVerifyTokenWithDifferentIssuer(t *testing.T) {
 		Issuer:    "issuer1",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	assert.NoError(t, err)
 
 	// Create a different claims object with a different issuer
 	claimsDifferentIssuer := jwt.RegisteredClaims{
 		Issuer: "issuer2",
 	}
+	claimsDifferentIssuer2 := CustomClaims[string]{}
+	claimsDifferentIssuer2.SignInfo = signInfo
+	claimsDifferentIssuer2.RegisteredClaims = claimsDifferentIssuer
 
 	// Verify the token with the different issuer claims
-	err = jwtInstance.VerifyToken(tokenString, signInfo, claimsDifferentIssuer)
+	err = jwtInstance.VerifyToken(tokenString, claimsDifferentIssuer2)
 	assert.Error(t, err)
 	assert.Equal(t, "invalid issuer", err.Error())
 }
@@ -277,11 +306,14 @@ func TestVerifyTokenWithSameIssuer(t *testing.T) {
 		Issuer:    "issuer1",
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	claims2 := CustomClaims[string]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	assert.NoError(t, err)
 
 	// Verify the token with the same issuer claims
-	err = jwtInstance.VerifyToken(tokenString, signInfo, claims)
+	err = jwtInstance.VerifyToken(tokenString, claims2)
 	assert.NoError(t, err)
 }
 
@@ -313,8 +345,12 @@ func TestJWT(t *testing.T) {
 		Audience:  jwt.ClaimStrings{"test_audience"},
 	}
 
+	claims2 := CustomClaims[SignInfo]{}
+	claims2.SignInfo = signInfo
+	claims2.RegisteredClaims = claims
+
 	// Create token
-	tokenString, err := jwtInstance.CreateToken(signInfo, claims)
+	tokenString, err := jwtInstance.CreateToken(claims2)
 	if err != nil {
 		t.Fatalf("Failed to create token: %v", err)
 	}
