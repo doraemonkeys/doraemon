@@ -147,9 +147,9 @@ func FileIsExist(path string) Ternary {
 		return False
 	}
 	if f.IsDir() {
-		return True
+		return False
 	}
-	return False
+	return True
 }
 
 // DirIsExist Check if a directory exists, return True, False, or Unknown
@@ -162,9 +162,9 @@ func DirIsExist(path string) Ternary {
 		return False
 	}
 	if f.IsDir() {
-		return False
+		return True
 	}
-	return True
+	return False
 }
 
 // 是否为文件夹
@@ -630,7 +630,8 @@ func InitConfig[T any](
 	devConfigFilePath := generateDevConfigPath(configFilePath)
 	if FileIsExist(devConfigFilePath).IsTrue() {
 		return loadConfigFromFile[T](devConfigFilePath, unmarshal)
-	} else {
+	}
+	if FileIsExist(configFilePath).IsFalse() {
 		err := createDefault(configFilePath)
 		if err != nil {
 			return nil, err

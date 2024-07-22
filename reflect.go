@@ -66,7 +66,8 @@ func findStructEmptyStringField(v reflect.Value, ignores map[string]bool) string
 }
 
 // 创建一个空的结构体实例，只能传入结构体类型
-func createStructEmptyInstance(structType reflect.Type) interface{} {
+func createStructEmptyInstance(structType reflect.Type, created map[reflect.Type]bool) interface{} {
+	created[structType] = true
 	value := reflect.New(structType).Elem()
 	if value.Kind() != reflect.Struct {
 		panic("createStructEmptyInstance: value is not a struct")
@@ -77,9 +78,12 @@ func createStructEmptyInstance(structType reflect.Type) interface{} {
 			continue
 		}
 		if field.Kind() == reflect.Struct {
-			field.Set(reflect.ValueOf(createStructEmptyInstance(field.Type())))
+			if created[field.Type()] {
+				continue
+			}
+			field.Set(reflect.ValueOf(createStructEmptyInstance(field.Type(), created)))
 		} else {
-			field.Set(reflect.ValueOf(CreateEmptyInstance(field.Type())))
+			field.Set(reflect.ValueOf(createEmptyInstance(field.Type(), created)))
 		}
 	}
 	return value.Interface()
@@ -88,9 +92,24 @@ func createStructEmptyInstance(structType reflect.Type) interface{} {
 const defaultMapKey = "key"
 
 func CreateEmptyInstance(rType reflect.Type) interface{} {
+	structTypeMap := make(map[reflect.Type]bool)
 	value := reflect.New(rType).Elem()
 	if value.Kind() == reflect.Struct {
-		return createStructEmptyInstance(rType)
+		return createStructEmptyInstance(rType, structTypeMap)
+	}
+	if !value.CanSet() {
+		return value.Interface()
+	}
+	return createEmptyInstance(rType, structTypeMap)
+}
+
+func createEmptyInstance(rType reflect.Type, created map[reflect.Type]bool) interface{} {
+	value := reflect.New(rType).Elem()
+	if value.Kind() == reflect.Struct {
+		if created[rType] {
+			return value.Interface()
+		}
+		return createStructEmptyInstance(rType, created)
 	}
 	if !value.CanSet() {
 		return value.Interface()
@@ -98,23 +117,29 @@ func CreateEmptyInstance(rType reflect.Type) interface{} {
 	switch value.Kind() {
 	case reflect.Slice:
 		slice := reflect.MakeSlice(rType, 1, 1)
-		slice.Index(0).Set(reflect.ValueOf(CreateEmptyInstance(rType.Elem())))
+		slice.Index(0).Set(reflect.ValueOf(createEmptyInstance(rType.Elem(), created)))
 		return slice.Interface()
 	case reflect.Map:
 		m := reflect.MakeMap(rType)
 		if rType.Key().Kind() == reflect.String {
-			m.SetMapIndex(reflect.ValueOf(defaultMapKey), reflect.ValueOf(CreateEmptyInstance(rType.Elem())))
+			m.SetMapIndex(reflect.ValueOf(defaultMapKey), reflect.ValueOf(createEmptyInstance(rType.Elem(), created)))
 		} else {
-			m.SetMapIndex(reflect.ValueOf(CreateEmptyInstance(rType.Key())), reflect.ValueOf(CreateEmptyInstance(rType.Elem())))
+			m.SetMapIndex(reflect.ValueOf(createEmptyInstance(rType.Key(), created)), reflect.ValueOf(createEmptyInstance(rType.Elem(), created)))
 		}
 		return m.Interface()
 	case reflect.Ptr:
-		instance := CreateEmptyInstance(rType.Elem())
+		if created[rType] {
+			return value.Interface()
+		}
+		instance := createEmptyInstance(rType.Elem(), created)
 		ptrInstance := reflect.New(rType.Elem())
 		ptrInstance.Elem().Set(reflect.ValueOf(instance))
 		return ptrInstance.Interface()
 	case reflect.Struct:
-		return createStructEmptyInstance(rType)
+		if created[rType] {
+			return value.Interface()
+		}
+		return createStructEmptyInstance(rType, created)
 	default:
 		return value.Interface()
 	}
