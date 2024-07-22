@@ -131,22 +131,40 @@ func GetAllNamesInPath2(path string) ([]Pair[string, bool], error) {
 	return all, nil
 }
 
-// 文件或文件夹是否存在
+// FileOrDirIsExist Check if a file or directory exists
 func FileOrDirIsExist(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil || os.IsExist(err)
 }
 
-// 文件是否存在
-func FileIsExist(path string) bool {
+// FileIsExist Check if a file exists, return True, False, or Unknown
+func FileIsExist(path string) Ternary {
 	f, err := os.Stat(path)
 	if err != nil {
-		return os.IsExist(err)
+		if os.IsExist(err) {
+			return Unknown
+		}
+		return False
 	}
 	if f.IsDir() {
-		return false
+		return True
 	}
-	return true
+	return False
+}
+
+// DirIsExist Check if a directory exists, return True, False, or Unknown
+func DirIsExist(path string) Ternary {
+	f, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return Unknown
+		}
+		return False
+	}
+	if f.IsDir() {
+		return False
+	}
+	return True
 }
 
 // 是否为文件夹
@@ -610,10 +628,9 @@ func InitConfig[T any](
 	unmarshal func(data []byte, v any) error,
 ) (*T, error) {
 	devConfigFilePath := generateDevConfigPath(configFilePath)
-	if FileIsExist(devConfigFilePath) {
+	if FileIsExist(devConfigFilePath).IsTrue() {
 		return loadConfigFromFile[T](devConfigFilePath, unmarshal)
-	}
-	if !FileIsExist(configFilePath) {
+	} else {
 		err := createDefault(configFilePath)
 		if err != nil {
 			return nil, err
