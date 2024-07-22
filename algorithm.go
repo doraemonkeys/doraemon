@@ -2,33 +2,13 @@ package doraemon
 
 import (
 	"errors"
-	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 )
 
-// 十六进制转换为十进制
-func HexToInt2(hex string) (int, error) {
-	if len(hex) > 2 && (strings.HasPrefix(hex, "0x") || strings.HasPrefix(hex, "0X")) {
-		hex = hex[2:]
-	}
-	var result int
-	for _, v := range hex {
-		result *= 16
-		switch {
-		case v >= '0' && v <= '9':
-			result += int(v - '0')
-		case v >= 'a' && v <= 'f':
-			result += int(v - 'a' + 10)
-		case v >= 'A' && v <= 'F':
-			result += int(v - 'A' + 10)
-		default:
-			return 0, errors.New("invalid hex string")
-		}
-	}
-	return result, nil
-}
-
+// HexToInt converts a hexadecimal string to an int64 value.
+// If an error occurs during conversion, the function panics.
 func HexToInt(hex string) int64 {
 	if strings.HasPrefix(hex, "0x") || strings.HasPrefix(hex, "0X") {
 		hex = hex[2:]
@@ -40,37 +20,35 @@ func HexToInt(hex string) int64 {
 	return num
 }
 
-// 字符转整型
-func CharToInt(c byte) int {
-	if c >= '0' && c <= '9' {
-		return int(c - '0')
+func HexToBigInt(hex string) *big.Int {
+	if strings.HasPrefix(hex, "0x") || strings.HasPrefix(hex, "0X") {
+		hex = hex[2:]
 	}
-	if c >= 'a' && c <= 'f' {
-		return int(c-'a') + 10
+	num := new(big.Int)
+	_, ok := num.SetString(hex, 16)
+	if !ok {
+		panic("invalid hex string")
 	}
-	if c >= 'A' && c <= 'F' {
-		return int(c-'A') + 10
-	}
-	return 0
+	return num
 }
 
-// Str2uint64 将字符串转换为uint64 使用前请确保传入的字符串是合法的
-func Str2uint64(str string) uint64 {
-	res, _ := strconv.ParseUint(str, 10, 64)
-	return res
-}
-
-// Str2int64 将字符串转换为int64 使用前请确保传入的字符串是合法的
-func Str2int64(str string) int64 {
-	res, _ := strconv.ParseInt(str, 10, 64)
-	return res
-}
-
-// Str2int32 将字符串转换为int32 使用前请确保传入的字符串是合法的
-func Str2int32(str string) int32 {
-	// res, _ := strconv.ParseInt(str, 10, 32)
-	// return int32(res)
-	var res int32 = 0
-	fmt.Sscanf("str", "%d", &res)
-	return res
+func HexToInt2(hex string) (int64, error) {
+	if len(hex) > 2 && (strings.HasPrefix(hex, "0x") || strings.HasPrefix(hex, "0X")) {
+		hex = hex[2:]
+	}
+	var result int64
+	for _, v := range hex {
+		result *= 16
+		switch {
+		case v >= '0' && v <= '9':
+			result += int64(v - '0')
+		case v >= 'a' && v <= 'f':
+			result += int64(v - 'a' + 10)
+		case v >= 'A' && v <= 'F':
+			result += int64(v - 'A' + 10)
+		default:
+			return 0, errors.New("invalid hex string")
+		}
+	}
+	return result, nil
 }

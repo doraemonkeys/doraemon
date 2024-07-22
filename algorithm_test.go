@@ -8,7 +8,7 @@ import (
 func TestHexToInt2(t *testing.T) {
 	tests := []struct {
 		hex      string
-		expected int
+		expected int64
 		err      error
 	}{
 		{hex: "0", expected: 0, err: nil},
@@ -22,6 +22,7 @@ func TestHexToInt2(t *testing.T) {
 		{hex: "0x10", expected: 16, err: nil},
 		{hex: "0xFF", expected: 255, err: nil},
 		{hex: "0xABC", expected: 2748, err: nil},
+		{hex: "0xaBC", expected: 2748, err: nil},
 		{hex: "0x", expected: 0, err: errors.New("invalid hex string")},
 		{hex: "G", expected: 0, err: errors.New("invalid hex string")},
 	}
@@ -54,6 +55,7 @@ func TestHexToInt(t *testing.T) {
 		{hex: "0x10", expected: 16, err: nil},
 		{hex: "0xFF", expected: 255, err: nil},
 		{hex: "0xABC", expected: 2748, err: nil},
+		{hex: "0xaBC", expected: 2748, err: nil},
 		{hex: "0x", expected: 0, err: errors.New("invalid hex string")},
 		{hex: "G", expected: 0, err: errors.New("invalid hex string")},
 	}
@@ -73,4 +75,40 @@ func TestHexToInt(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHexToBigInt(t *testing.T) {
+	tests := []struct {
+		hex      string
+		expected string
+	}{
+		{"0x1", "1"},
+		{"0X1", "1"},
+		{"1", "1"},
+		{"0xA", "10"},
+		{"0x10", "16"},
+		{"123ABC", "1194684"},
+		{"0x123ABC", "1194684"},
+		{"abcdef", "11259375"},
+		{"0xabcdef", "11259375"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			got := HexToBigInt(tt.hex).String()
+			if got != tt.expected {
+				t.Errorf("HexToBigInt(%s) = %s; want %s", tt.hex, got, tt.expected)
+			}
+		})
+	}
+}
+
+// This will test panic for invalid input strings.
+func TestHexToBigIntInvalid(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for invalid hex string, but did not get one")
+		}
+	}()
+	HexToBigInt("invalid")
 }
