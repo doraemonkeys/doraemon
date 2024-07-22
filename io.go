@@ -57,14 +57,14 @@ type StdBaseLogger interface {
 	Infoln(...interface{})
 	Debugf(string, ...interface{})
 	Debugln(...interface{})
-	Tracef(string, ...interface{})
-	Traceln(...interface{})
 }
 
 type StdLogger interface {
 	StdBaseLogger
 	Panicf(string, ...interface{})
 	Panicln(...interface{})
+	Tracef(string, ...interface{})
+	Traceln(...interface{})
 }
 
 // ReadAllWithLimitBuffer reads from reader until EOF or an error occurs.
