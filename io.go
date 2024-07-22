@@ -6,12 +6,42 @@ import (
 	"io"
 )
 
+func MultiReaderCloser(readers ...io.ReadCloser) io.ReadCloser {
+	m := multiReadCloser{}
+	rs := make([]io.Reader, len(readers))
+	for i, r := range readers {
+		rs[i] = r
+	}
+	m.readers = readers
+	m.multiReader = io.MultiReader(rs...)
+	return &m
+}
+
+type multiReadCloser struct {
+	readers     []io.ReadCloser
+	multiReader io.Reader
+}
+
+func (m *multiReadCloser) Read(p []byte) (n int, err error) {
+	return m.multiReader.Read(p)
+}
+
+func (m *multiReadCloser) Close() error {
+	var errs []error
+	for _, r := range m.readers {
+		if err := r.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 type WriteFlushCloser interface {
 	io.WriteCloser
 	Flush() error
 }
 
-// 实现Close时自动Flush再Close
+// Close automatically Flush and then Close
 type BufWriteFlushCloser struct {
 	wc   io.WriteCloser
 	bufW *bufio.Writer
