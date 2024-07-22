@@ -90,7 +90,6 @@ func ComputeMD5Hex(content io.Reader) (string, error) {
 	return fmt.Sprintf("%x", md5), nil
 }
 
-// 获取文件md5
 func ComputeFileMd5(filename string) ([]byte, error) {
 	file, err := os.Open(filename)
 	if err != nil {
