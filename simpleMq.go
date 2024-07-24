@@ -44,7 +44,6 @@ func (b *SimpleMQ[T]) PushSlice(values []T) {
 	}
 	b.bufferLock.Lock()
 	*b.buffer = append(*b.buffer, values...)
-	// notify the waiting goroutine that the buffer is not empty
 	if len(*b.buffer) == len(values) {
 		b.enableSignal()
 	}
@@ -52,6 +51,7 @@ func (b *SimpleMQ[T]) PushSlice(values []T) {
 }
 
 // popAll removes and returns all elements from the queue.
+//
 // If the queue is empty, it returns nil, this happens only with a low probability when SwapBuffer is called.
 //
 // The caller should wait the signal before calling this function.
@@ -72,6 +72,7 @@ func (b *SimpleMQ[T]) popAll() *[]T {
 	return ret
 }
 
+// enableSignal give a signal indicating that the buffer is not empty
 func (b *SimpleMQ[T]) enableSignal() {
 	select {
 	case b.popallCondChan <- struct{}{}:
@@ -127,8 +128,8 @@ func (b *SimpleMQ[T]) WaitPopAll() *[]T {
 	panic("unreachable")
 }
 
-// WaitPopAllWithContext like WaitPopAll but with a context.
-func (b *SimpleMQ[T]) WaitPopAllWithContext(ctx context.Context) (*[]T, bool) {
+// WaitPopAllContext like WaitPopAll but with a context.
+func (b *SimpleMQ[T]) WaitPopAllContext(ctx context.Context) (*[]T, bool) {
 	for {
 		select {
 		case <-b.popallCondChan:
