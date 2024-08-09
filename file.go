@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -663,4 +664,74 @@ func loadConfigFromFile[T any](
 		return nil, err
 	}
 	return &config, nil
+}
+
+type LazyFileWriter struct {
+	// Path to the file
+	filePath string
+	// File handle
+	file *os.File
+	// Ensures file is opened only once
+	once *sync.Once
+}
+
+// Ensure LazyFileWriter implements io.WriteCloser
+var _ io.WriteCloser = (*LazyFileWriter)(nil)
+
+// NewLazyFileWriter creates a new LazyFileWriter with the given file path
+func NewLazyFileWriter(filePath string) *LazyFileWriter {
+	return &LazyFileWriter{filePath: filePath, once: &sync.Once{}}
+}
+
+// Write writes the given bytes to the file, creating the file if it doesn't exist.
+func (w *LazyFileWriter) Write(p []byte) (n int, err error) {
+	w.once.Do(func() {
+		w.file, err = os.OpenFile(w.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	})
+	if err != nil {
+		return 0, err
+	}
+	f := w.file
+	if f != nil {
+		return f.Write(p)
+	}
+	return 0, os.ErrClosed
+}
+
+// Close closes the file. Close will return an error if it has already been called.
+func (w *LazyFileWriter) Close() error {
+	f := w.file
+	if f != nil {
+		w.file = nil
+		return f.Close()
+	}
+	return os.ErrClosed
+}
+
+// Sync flushes file's in-memory state to disk
+func (w *LazyFileWriter) Sync() error {
+	f := w.file
+	if f != nil {
+		return f.Sync()
+	}
+	return os.ErrClosed
+}
+
+// Name returns the base name of the file
+func (w *LazyFileWriter) Name() string {
+	return filepath.Base(w.filePath)
+}
+
+func (w *LazyFileWriter) Path() string {
+	return w.filePath
+}
+
+// IsCreated checks if the file has been created/opened
+func (w *LazyFileWriter) IsCreated() bool {
+	return w.file != nil
+}
+
+// File returns the file handle
+func (w *LazyFileWriter) File() *os.File {
+	return w.file
 }
