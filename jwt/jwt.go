@@ -77,24 +77,24 @@ func (j *JWT[T]) CreateDefaultToken(signInfo T, expiresAt time.Time) (string, er
 }
 
 func (j *JWT[T]) ParseToken(tokenString string) (*CustomClaims[T], error) {
-	return j.ParseTokenWithKeyFunc(tokenString, func(j *JWT[T], token *jwt.Token) (any, error) {
-		switch j.signingAlgo.(type) {
+	return j.ParseTokenWithKeyFunc(tokenString, func(signingAlgo jwt.SigningMethod, secretKey any, _ *jwt.Token) (any, error) {
+		switch signingAlgo.(type) {
 		case *jwt.SigningMethodHMAC:
-			return j.secretKey.([]byte), nil
+			return secretKey.([]byte), nil
 		case *jwt.SigningMethodECDSA:
-			return j.secretKey.(*ecdsa.PrivateKey).Public(), nil
+			return secretKey.(*ecdsa.PrivateKey).Public(), nil
 		case *jwt.SigningMethodRSA:
-			return j.secretKey.(*rsa.PrivateKey).Public(), nil
+			return secretKey.(*rsa.PrivateKey).Public(), nil
 		default:
 			return nil, fmt.Errorf("unexpected signing method: %v", j.signingAlgo)
 		}
 	})
 }
 
-func (j *JWT[T]) ParseTokenWithKeyFunc(tokenString string, keyFunc func(j *JWT[T], token *jwt.Token) (any, error)) (*CustomClaims[T], error) {
+func (j *JWT[T]) ParseTokenWithKeyFunc(tokenString string, keyFunc func(signingAlgo jwt.SigningMethod, secretKey any, token *jwt.Token) (any, error)) (*CustomClaims[T], error) {
 	var claims = &CustomClaims[T]{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (any, error) {
-		return keyFunc(j, t)
+		return keyFunc(j.signingAlgo, j.secretKey, t)
 	})
 	if err != nil {
 		return nil, err
