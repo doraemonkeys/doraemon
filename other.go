@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -33,14 +34,18 @@ func GetYesterday() time.Time {
 	return time.Now().AddDate(0, 0, -1)
 }
 
-// 判断当前进程是否以管理员身份运行
+// IsAdmin checks if the current process is running with administrative privileges.
 func IsAdmin() bool {
-	file, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-	if err != nil {
-		return false
+	if runtime.GOOS == "windows" {
+		file, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+		if err != nil {
+			return false
+		}
+		defer file.Close()
+		return true
+	} else {
+		return os.Getuid() == 0
 	}
-	defer file.Close()
-	return true
 }
 
 // Press Enter Key to Continue with Timeout，超时则退出程序
