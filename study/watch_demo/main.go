@@ -11,6 +11,7 @@ import (
 	"github.com/mutagen-io/mutagen/pkg/filesystem/watching"
 )
 
+// 监控可能有很长的延迟(操作系统带来的，例如windows的文件写入后属性变化，需要等待一段时间才会触发)
 func main() {
 	// Parse arguments.
 	if len(os.Args) != 2 {
