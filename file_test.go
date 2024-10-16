@@ -124,3 +124,73 @@ func TestLazyFileWriterConcurrency(t *testing.T) {
 		t.Fatalf("Failed to close file: %v", err)
 	}
 }
+
+func TestGenerateUniqueFilepath(t *testing.T) {
+	// 创建临时目录用于测试
+	tempDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testCases := []struct {
+		name     string
+		setup    func(string) string
+		input    string
+		expected string
+	}{
+		{
+			name:     "New file",
+			setup:    func(dir string) string { return filepath.Join(dir, "test.txt") },
+			input:    "test.txt",
+			expected: "test.txt",
+		},
+		{
+			name: "Existing file",
+			setup: func(dir string) string {
+				path := filepath.Join(dir, "test.txt")
+				os.Create(path)
+				return path
+			},
+			input:    "test.txt",
+			expected: "test(1).txt",
+		},
+		{
+			name: "Multiple existing files",
+			setup: func(dir string) string {
+				os.Create(filepath.Join(dir, "test.txt"))
+				os.Create(filepath.Join(dir, "test(1).txt"))
+				return filepath.Join(dir, "test.txt")
+			},
+			input:    "test.txt",
+			expected: "test(2).txt",
+		},
+		{
+			name:     "File without extension",
+			setup:    func(dir string) string { return filepath.Join(dir, "test") },
+			input:    "test",
+			expected: "test",
+		},
+		{
+			name: "Existing file without extension",
+			setup: func(dir string) string {
+				path := filepath.Join(dir, "test")
+				os.Create(path)
+				return path
+			},
+			input:    "test",
+			expected: "test(1)",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			filePath := tc.setup(tempDir)
+			result := GenerateUniqueFilepath(filePath)
+			expected := filepath.Join(tempDir, tc.expected)
+			if result != expected {
+				t.Errorf("Expected %s, got %s", expected, result)
+			}
+		})
+	}
+}

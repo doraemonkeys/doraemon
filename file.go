@@ -735,3 +735,25 @@ func (w *LazyFileWriter) IsCreated() bool {
 func (w *LazyFileWriter) File() *os.File {
 	return w.file
 }
+
+// GenerateUniqueFilepath generates a unique filepath by appending a number to the original filepath
+// if the original filepath already exists.
+func GenerateUniqueFilepath(filePath string) string {
+	if !FileOrDirIsExist(filePath) {
+		return filePath
+	}
+	dir := filepath.Dir(filePath)
+	name := filepath.Base(filePath)
+	fileExt := filepath.Ext(name)
+	name = name[:len(name)-len(fileExt)]
+	for i := 1; ; i++ {
+		if fileExt != "" {
+			filePath = filepath.Join(dir, fmt.Sprintf("%s(%d)%s", name, i, fileExt))
+		} else {
+			filePath = filepath.Join(dir, fmt.Sprintf("%s(%d)", name, i))
+		}
+		if !FileOrDirIsExist(filePath) {
+			return filePath
+		}
+	}
+}
