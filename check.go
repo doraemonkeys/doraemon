@@ -94,8 +94,8 @@ func DebugInfo() string {
 		fmt.Fprintf(&buf, "[%d] %s\n", i, arg)
 	}
 
-	// Is Admin
-	writeSection("Is Admin")
+	// Admin Information
+	writeSection("Admin Information")
 	fmt.Fprintf(&buf, "Is Admin: %v\n", IsAdmin())
 	fmt.Fprintf(&buf, "uid: %d\n", os.Getuid())
 
