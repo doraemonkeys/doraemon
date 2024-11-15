@@ -287,7 +287,7 @@ func GenRandomString(charset string, length int) string {
 	return strB.String()
 }
 
-// GenRandomAsciiString 生成指定长度的随机字符串，只包含大小写字母和数字。
+// GenRandomAsciiString generate a random string of a specified length, only containing uppercase and lowercase letters and numbers.
 func GenRandomAsciiString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	return GenRandomString(charset, length)
