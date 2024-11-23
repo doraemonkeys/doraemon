@@ -114,6 +114,12 @@ type RateLimiter struct {
 	cleanupCancel context.CancelFunc
 }
 
+// NewRateLimiter creates a new RateLimiter.
+//
+// Example:
+//
+//	// 100 requests per minute, divided into 6 sub-windows
+//	NewRateLimiter(100, time.Minute, 6)
 func NewRateLimiter(limit int, windowSize time.Duration, subWindowNum int) *RateLimiter {
 	if limit <= 0 {
 		panic("limit must be greater than 0")
