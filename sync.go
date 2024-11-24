@@ -85,6 +85,11 @@ func (rl *SlidingWindowRateLimiter) Allow() bool {
 	bucketsToAdvance := int(timePassed / (rl.windowSize / time.Duration(rl.subWindowNum)))
 
 	if bucketsToAdvance > 0 {
+		if bucketsToAdvance > rl.subWindowNum {
+			// Maximum to clear all sub-windows
+			bucketsToAdvance = rl.subWindowNum
+		}
+		// Move to the next sub-window and clear the current sub-window count
 		for i := 0; i < bucketsToAdvance; i++ {
 			rl.currentBucket = (rl.currentBucket + 1) % rl.subWindowNum
 			rl.buckets[rl.currentBucket] = 0
@@ -150,13 +155,16 @@ func (rl *RateLimiter) Allow(userID string) bool {
 	}
 	rl.limitersMu.RUnlock()
 
+	limiter := NewSlidingWindowRateLimiter(rl.limit, rl.windowSize, rl.subWindowNum)
+
 	rl.limitersMu.Lock()
-	defer rl.limitersMu.Unlock()
 	if limiter, exists := rl.limiters[userID]; exists {
+		rl.limitersMu.Unlock()
 		return limiter.Allow()
 	}
-	limiter := NewSlidingWindowRateLimiter(rl.limit, rl.windowSize, rl.subWindowNum)
 	rl.limiters[userID] = limiter
+	rl.limitersMu.Unlock()
+
 	return limiter.Allow()
 }
 

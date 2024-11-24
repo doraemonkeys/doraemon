@@ -29,6 +29,94 @@ func TestNewSlidingWindowRateLimiter(t *testing.T) {
 	}
 }
 
+func TestSlidingWindowRateLimiter(t *testing.T) {
+	t.Run("Basic functionality", func(t *testing.T) {
+		limiter := NewSlidingWindowRateLimiter(5, time.Second, 10)
+		for i := 0; i < 5; i++ {
+			if !limiter.Allow() {
+				t.Errorf("Expected to allow request %d, but it was denied", i+1)
+			}
+		}
+		if limiter.Allow() {
+			t.Error("Expected to deny 6th request, but it was allowed")
+		}
+	})
+
+	t.Run("Full window reset", func(t *testing.T) {
+		limiter := NewSlidingWindowRateLimiter(5, 100*time.Millisecond, 10)
+		for i := 0; i < 5; i++ {
+			if !limiter.Allow() {
+				t.Errorf("Expected to allow request %d, but it was denied", i+1)
+			}
+		}
+		if limiter.Allow() {
+			t.Error("Expected to deny 6th request, but it was allowed")
+		}
+
+		time.Sleep(110 * time.Millisecond)
+		for i := 0; i < 5; i++ {
+			if !limiter.Allow() {
+				t.Errorf("Expected to allow request %d after full window reset, but it was denied", i+1)
+			}
+		}
+	})
+
+	t.Run("High concurrency", func(t *testing.T) {
+		limiter := NewSlidingWindowRateLimiter(1000, time.Second, 10)
+		done := make(chan bool)
+		for i := 0; i < 1000; i++ {
+			go func() {
+				if !limiter.Allow() {
+					t.Error("Expected to allow request in high concurrency scenario, but it was denied")
+				}
+				done <- true
+			}()
+		}
+		for i := 0; i < 1000; i++ {
+			<-done
+		}
+		if limiter.Allow() {
+			t.Error("Expected to deny request after limit reached in high concurrency scenario, but it was allowed")
+		}
+	})
+
+	t.Run("Long inactivity period", func(t *testing.T) {
+		limiter := NewSlidingWindowRateLimiter(5, time.Second, 10)
+		for i := 0; i < 5; i++ {
+			if !limiter.Allow() {
+				t.Errorf("Expected to allow request %d, but it was denied", i+1)
+			}
+		}
+		if limiter.Allow() {
+			t.Error("Expected to deny 6th request, but it was allowed")
+		}
+
+		time.Sleep(2 * time.Second)
+		for i := 0; i < 5; i++ {
+			if !limiter.Allow() {
+				t.Errorf("Expected to allow request %d after long inactivity, but it was denied", i+1)
+			}
+		}
+	})
+
+	t.Run("Very small window size", func(t *testing.T) {
+		limiter := NewSlidingWindowRateLimiter(3, 10*time.Millisecond, 5)
+		for i := 0; i < 3; i++ {
+			if !limiter.Allow() {
+				t.Errorf("Expected to allow request %d with small window, but it was denied", i+1)
+			}
+		}
+		if limiter.Allow() {
+			t.Error("Expected to deny 4th request with small window, but it was allowed")
+		}
+
+		time.Sleep(12 * time.Millisecond)
+		if !limiter.Allow() {
+			t.Error("Expected to allow request after small window passed, but it was denied")
+		}
+	})
+}
+
 // 测试SlidingWindowRateLimiter的Allow方法
 func TestSlidingWindowRateLimiterAllow(t *testing.T) {
 	t.Run("test", func(t *testing.T) {
