@@ -48,6 +48,11 @@ type NoCopy struct{}
 func (*NoCopy) Lock()   {}
 func (*NoCopy) Unlock() {}
 
+// Incomparable is a zero-width, non-comparable type. Adding it to a struct
+// makes that struct also non-comparable, and generally doesn't add
+// any size (as long as it's first).
+type Incomparable [0]func()
+
 func Assert(ok bool) {
 	if !ok {
 		panic("assertion failed")
