@@ -139,6 +139,7 @@ func DebugInfo() string {
 	} else {
 		fmt.Fprintf(&buf, "User Cache Directory Error: %v\n", err)
 	}
+	fmt.Fprintf(&buf, "Temp Directory: %s\n", os.TempDir())
 
 	// Memory Usage
 	writeSection("Memory Usage")
