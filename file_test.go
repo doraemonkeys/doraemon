@@ -194,3 +194,19 @@ func TestGenerateUniqueFilepath(t *testing.T) {
 		})
 	}
 }
+
+func TestListFilesRecursively(t *testing.T) {
+	tempDir := os.TempDir()
+	// create a file in tempDir
+	filePath := filepath.Join(tempDir, "test.txt")
+	_, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+	defer os.Remove(filePath)
+	files, err := ListFilesRecursively(filePath)
+	if err != nil {
+		t.Fatalf("Failed to get file names: %v", err)
+	}
+	t.Logf("Files: %v", files)
+}

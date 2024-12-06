@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +17,8 @@ import (
 	"time"
 )
 
+// Deprecated: 使用 ListFilesRecursively 代替
+//
 // 递归获取path下所有文件(包含子文件夹中的文件)。
 // path决定返回的文件路径是绝对路径还是相对路径。
 func GetFileNamesRecursive(path string) ([]string, error) {
@@ -28,6 +31,27 @@ func GetFileNamesRecursive(path string) ([]string, error) {
 			return err
 		}
 		if f.IsDir() {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	return files, err
+}
+
+// ListFilesRecursively recursively retrieves all files under the specified path, including files in subdirectories.
+// If the path is a file, it returns the path itself.
+// The returned file paths are either absolute or relative based on the input path.
+func ListFilesRecursively(path string) ([]string, error) {
+	if path == "" {
+		return nil, fmt.Errorf("path is empty")
+	}
+	files := make([]string, 0)
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
 			return nil
 		}
 		files = append(files, path)
