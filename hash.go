@@ -9,44 +9,6 @@ import (
 	"os"
 )
 
-// Deprecated: use SHA1 instead
-func GetSha1(data []byte) ([]byte, error) {
-	hash := sha1.New()
-	if _, err := hash.Write(data); err != nil {
-		return nil, err
-	}
-	return hash.Sum(nil), nil
-}
-
-// Deprecated: use MD5 instead
-func GetMd5(content []byte) ([]byte, error) {
-	hash := md5.New()
-	_, err := hash.Write(content)
-	if err != nil {
-		return nil, err
-	}
-	return hash.Sum(nil), nil
-}
-
-// Deprecated: use MD5Hex instead
-func GetMd5Hex(content []byte) (string, error) {
-	md5, err := GetMd5(content)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", md5), nil
-}
-
-// Deprecated: use SHA256 instead
-func GetSha256(content []byte) ([]byte, error) {
-	hash := sha256.New()
-	_, err := hash.Write(content)
-	if err != nil {
-		return nil, err
-	}
-	return hash.Sum(nil), nil
-}
-
 func ComputeSHA1(content io.Reader) ([]byte, error) {
 	hash := sha1.New()
 	_, err := io.Copy(hash, content)

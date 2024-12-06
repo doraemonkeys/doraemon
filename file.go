@@ -17,28 +17,6 @@ import (
 	"time"
 )
 
-// Deprecated: 使用 ListFilesRecursively 代替
-//
-// 递归获取path下所有文件(包含子文件夹中的文件)。
-// path决定返回的文件路径是绝对路径还是相对路径。
-func GetFileNamesRecursive(path string) ([]string, error) {
-	if path == "" {
-		return nil, fmt.Errorf("path is empty")
-	}
-	files := make([]string, 0)
-	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
-		if f == nil {
-			return err
-		}
-		if f.IsDir() {
-			return nil
-		}
-		files = append(files, path)
-		return nil
-	})
-	return files, err
-}
-
 // ListFilesRecursively recursively retrieves all files under the specified path, including files in subdirectories.
 // If the path is a file, it returns the path itself.
 // The returned file paths are either absolute or relative based on the input path.
@@ -60,44 +38,43 @@ func ListFilesRecursively(path string) ([]string, error) {
 	return files, err
 }
 
-// 递归获取path下所有文件夹(包含子文件夹)
-// path决定返回的文件路径是绝对路径还是相对路径。
-func GetFolderNamesRecursive(path string) ([]string, error) {
+// ListDirsRecursively recursively retrieves all directories under the specified path, including subdirectories.
+// If the path is a directory, it returns the path itself.
+// The returned directory paths are either absolute or relative based on the input path.
+func ListDirsRecursively(path string) ([]string, error) {
 	if path == "" {
 		return nil, fmt.Errorf("path is empty")
 	}
 	dirs := make([]string, 0)
-	err := filepath.Walk(path, func(childPath string, f os.FileInfo, err error) error {
-		if f == nil {
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
 			return err
 		}
-		if !f.IsDir() {
+		if !d.IsDir() {
 			return nil
 		}
-		if childPath == path {
-			return nil
-		}
-		dirs = append(dirs, childPath)
+		dirs = append(dirs, path)
 		return nil
 	})
 	return dirs, err
 }
 
-// 递归获取path下所有文件和文件夹
-// path决定返回的文件路径是绝对路径还是相对路径。
-func GetAllNamesRecursive(path string) ([]string, error) {
+// ListAllRecursively recursively retrieves all paths under the specified path, including files and directories.
+// If the path is a file, it returns the path itself.
+// The returned paths are either absolute or relative based on the input path.
+func ListAllRecursively(path string) ([]string, error) {
 	if path == "" {
 		return nil, fmt.Errorf("path is empty")
 	}
-	var files []string
-	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
-		if f == nil {
+	paths := make([]string, 0)
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
 			return err
 		}
-		files = append(files, path)
+		paths = append(paths, path)
 		return nil
 	})
-	return files, err
+	return paths, err
 }
 
 // 获取path下所有文件名称(含后缀,不含路径)
