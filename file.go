@@ -758,3 +758,29 @@ func GenerateUniqueFilepath(filePath string) string {
 		}
 	}
 }
+
+func WriteFile(filePath string, perm fs.FileMode, datas ...[]byte) error {
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	for _, data := range datas {
+		_, err = f.Write(data)
+		if err != nil {
+			return err
+		}
+	}
+	return f.Close()
+}
+
+func WriteFile2(filePath string, data io.Reader, perm fs.FileMode) error {
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(f, data)
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
