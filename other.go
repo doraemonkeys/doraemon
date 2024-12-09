@@ -66,6 +66,31 @@ func PressEnterKeyToContinueWithTimeout(timeout time.Duration) {
 	}
 }
 
+// GenerateCPUIntensiveTask returns a function that performs a duration CPU-intensive task
+func GenerateCPUIntensiveTask(duration time.Duration) func() {
+	const N = 1000
+	start := time.Now()
+	iteration := 0
+	var cnt int64 = 0
+	var i int
+	for time.Since(start) < duration {
+		for i = 0; i < N; i++ {
+			cnt = cnt * rand.Int64N(100)
+			iteration++
+		}
+	}
+	return func() {
+		var cnt2 int64 = cnt
+		for i = 0; i < iteration; i++ {
+			cnt2 = cnt2 * rand.Int64N(100)
+			cnt++
+		}
+		// KeepAlive ensures that the variable is not optimized away by the compiler
+		runtime.KeepAlive(cnt)
+		runtime.KeepAlive(cnt2)
+	}
+}
+
 // 随机获取user-agent(不含移动端)
 func GetRandomUserAgent() string {
 	userAgentList := []string{
