@@ -107,3 +107,13 @@ func (wr *WeightedRandom[T]) getRandomPrizeFromSlice(prizes []Prize[T], totalWei
 	}
 	panic("no prize found")
 }
+
+// for test
+func (wr *WeightedRandom[T]) shuffle() {
+	rand.Shuffle(len(wr.prizes), func(i, j int) {
+		wr.prizes[i], wr.prizes[j] = wr.prizes[j], wr.prizes[i]
+	})
+	// if len(wr.prizes) > 1 && rand.Int32N(10) > 8 {
+	// 	wr.prizes[0], wr.prizes[len(wr.prizes)-1] = wr.prizes[len(wr.prizes)-1], wr.prizes[0]
+	// }
+}
