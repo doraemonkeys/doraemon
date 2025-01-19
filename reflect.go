@@ -91,7 +91,9 @@ func createStructEmptyInstance(structType reflect.Type, created map[reflect.Type
 
 const defaultMapKey = "key"
 
-func CreateEmptyInstance(rType reflect.Type) interface{} {
+// DeepCreateEmptyInstance create a empty instance of the type,
+// recursively create the instance of the struct field,include the struct field's pointer
+func DeepCreateEmptyInstance(rType reflect.Type) interface{} {
 	structTypeMap := make(map[reflect.Type]bool)
 	value := reflect.New(rType).Elem()
 	if value.Kind() == reflect.Struct {

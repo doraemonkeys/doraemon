@@ -151,7 +151,7 @@ func TestCreateEmptyInstance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateEmptyInstance(tt.args.rType); !reflect.DeepEqual(got, tt.want) {
+			if got := DeepCreateEmptyInstance(tt.args.rType); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CreateEmptyInstance() = %v, want %v", got, tt.want)
 			}
 		})
@@ -159,7 +159,7 @@ func TestCreateEmptyInstance(t *testing.T) {
 }
 
 func TestCreateEmptyInstanceMapPtrKey(t *testing.T) {
-	got := CreateEmptyInstance(reflect.TypeOf(&map[*int]string{}))
+	got := DeepCreateEmptyInstance(reflect.TypeOf(&map[*int]string{}))
 	gotType := reflect.TypeOf(got)
 	if gotType.Kind() != reflect.Ptr {
 		t.Errorf("CreateEmptyInstance() = %v, want %v", gotType.Kind(), reflect.Ptr)

@@ -17,7 +17,7 @@ func InitTomlConfig[T any](configFile string, createDefault func(path string) er
 
 	if createDefault == nil {
 		createDefault = func(path string) error {
-			c, err := toml.Marshal(doraemon.CreateEmptyInstance(reflect.TypeOf(config)))
+			c, err := toml.Marshal(doraemon.DeepCreateEmptyInstance(reflect.TypeOf(config)))
 			if err != nil {
 				return err
 			}

@@ -25,7 +25,8 @@ func (w *WaitGroup) Wait() {
 	w.wg.Wait()
 }
 
-// 全局默认的Panic处理
+// PanicHandlers is the global default panic handler.
+// It will print the panic message and stack trace to the console and write it to a file.
 var PanicHandlers = []func(any){
 	func(recoveredErr any) {
 		var buf [4096]byte

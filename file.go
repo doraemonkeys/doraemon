@@ -202,6 +202,10 @@ func IsFile(path string) (is bool, exist bool, err error) {
 // windows下读取某些非正常快捷方式文件时会报错 read xxx : Incorrect function.
 // 这种快捷方式使用os.Stat()查询会报告为文件夹(IsDir()会返回true)，
 // 但是使用os.ReadDir读取父文件夹来查询这个子快捷方式时，IsDir() 会返回false。
+
+// When reading certain abnormal shortcut files on Windows, an error "read xxx: Incorrect function" may occur.
+// These shortcuts are reported as folders when queried using os.Stat() (IsDir() returns true).
+// However, when using os.ReadDir to read the parent folder and query this child shortcut, IsDir() returns false.
 const WindowsReadLnkFileErrorKeyWords = "Incorrect function"
 
 // 复制文件到指定目录
@@ -607,7 +611,7 @@ func InitJsonConfig[T any](configFilePath string, createDefault func(path string
 
 	if createDefault == nil {
 		createDefault = func(path string) error {
-			c, err := json.MarshalIndent(CreateEmptyInstance(reflect.TypeOf(config)), "", "    ")
+			c, err := json.MarshalIndent(DeepCreateEmptyInstance(reflect.TypeOf(config)), "", "    ")
 			if err != nil {
 				return err
 			}
