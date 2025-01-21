@@ -56,6 +56,8 @@ func HexToInt2(hex string) (int64, error) {
 
 // SignInRecorder is a daily sign-in recorder that resets at midnight.
 // It's not thread-safe and requires external locking for concurrent access.
+// It uses a uint64 to store the sign-in status, each bit represents a day's sign-in status: 0 for not signed in, 1 for signed in.
+// It can record up to 64 days.
 type SignInRecorder struct {
 	// record stores the sign-in status. Each bit represents a day's sign-in status: 0 for not signed in, 1 for signed in.
 	// It can record up to 64 days.
@@ -176,11 +178,11 @@ func (s *SignInRecorder) RawRecord() (record uint64, lastSignInTime time.Time) {
 
 // Record returns the sign-in record as a boolean slice.
 func (s *SignInRecorder) Record() []bool {
-	return s.GetSignInRecordN(64)
+	return s.RecordN(64)
 }
 
-// GetSignInRecordN returns the sign-in record as a boolean slice with the specified length.
-func (s *SignInRecorder) GetSignInRecordN(n int) []bool {
+// RecordN returns the sign-in record as a boolean slice with the specified length.
+func (s *SignInRecorder) RecordN(n int) []bool {
 	if n < 0 || n > 64 {
 		panic("n must be between 0 and 64")
 	}
@@ -206,8 +208,8 @@ func (s *SignInRecorder) HasSignedToday() bool {
 	return s.correctSignInRecord(s.clock().In(s.location))
 }
 
-// GetConsecutiveSignInDays returns the number of consecutive sign-in days.
-func (s *SignInRecorder) GetConsecutiveSignInDays() int {
+// ConsecutiveSignInDays returns the number of consecutive sign-in days.
+func (s *SignInRecorder) ConsecutiveSignInDays() int {
 	s.correctSignInRecord(s.clock().In(s.location))
 	consecutiveDays := 0
 	for i := 0; i < 64; i++ {
@@ -221,7 +223,7 @@ func (s *SignInRecorder) GetConsecutiveSignInDays() int {
 
 // DaysToNextMilestone returns the remaining days to reach the next milestone (e.g., 7-day, 30-day).
 func (s *SignInRecorder) DaysToNextMilestone(milestone int) int {
-	consecutive := s.GetConsecutiveSignInDays()
+	consecutive := s.ConsecutiveSignInDays()
 	if consecutive >= milestone {
 		return 0
 	}

@@ -587,20 +587,20 @@ func TestGetSignInRecordN(t *testing.T) {
 
 	// Test case 1: valid n
 	n := 10
-	record := recorder.GetSignInRecordN(n)
+	record := recorder.RecordN(n)
 	if len(record) != n {
 		t.Errorf("GetSignInRecordN: expected length to be %d, got %d", n, len(record))
 	}
 
 	// Test case 2: n = 0
 	n = 0
-	record = recorder.GetSignInRecordN(n)
+	record = recorder.RecordN(n)
 	if len(record) != 0 {
 		t.Errorf("GetSignInRecordN: expected length to be %d, got %d", n, len(record))
 	}
 	// Test case 3: sign in and check
 	recorder.SignIn()
-	record = recorder.GetSignInRecordN(1)
+	record = recorder.RecordN(1)
 	if !record[0] {
 		t.Errorf("GetSignInRecordN: expected index 0 to be true after signing in, got false")
 	}
@@ -611,7 +611,7 @@ func TestGetSignInRecordN(t *testing.T) {
 			t.Errorf("GetSignInRecordN: expected panic for n out of range")
 		}
 	}()
-	recorder.GetSignInRecordN(65)
+	recorder.RecordN(65)
 }
 
 func TestHasSignIn(t *testing.T) {
@@ -801,7 +801,7 @@ func TestSignInRecorder_GetConsecutiveSignInDays(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSignInRecorder(tt.record, tt.lastSignInTime.In(loc))
 			s.SetClock(clock)
-			actualDays := s.GetConsecutiveSignInDays()
+			actualDays := s.ConsecutiveSignInDays()
 			if actualDays != tt.expectedDays {
 				t.Errorf("GetConsecutiveSignInDays() = %v, want %v", actualDays, tt.expectedDays)
 			}
@@ -915,7 +915,7 @@ func ExampleSignInRecorder() {
 	fmt.Println("Raw record:", rawRecord)
 
 	n := 3
-	nRecord := recorder.GetSignInRecordN(n)
+	nRecord := recorder.RecordN(n)
 	fmt.Println("Get record with n = ", n, ":", nRecord)
 	// Output:
 	// Initial record: [false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
