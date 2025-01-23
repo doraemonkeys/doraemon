@@ -173,19 +173,19 @@ func Test_calculateDaysDiff(t *testing.T) {
 	}
 }
 
-func TestNewEmptySignInRecorder(t *testing.T) {
+func TestNewEmptyCheckInRecorder(t *testing.T) {
 	loc := time.UTC
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 
 	if recorder.record != 0 {
 		t.Errorf("Expected record to be 0, got %d", recorder.record)
 	}
 
-	if recorder.lastSignInTime.IsZero() == false {
-		t.Errorf("Expected lastSignInTime to be zero value time, got %v", recorder.lastSignInTime)
+	if recorder.lastCheckInTime.IsZero() == false {
+		t.Errorf("Expected lastCheckInTime to be zero value time, got %v", recorder.lastCheckInTime)
 	}
-	if recorder.lastSignInTime.Location() != loc {
-		t.Errorf("Expected lastSignInTime location to be %v, got %v", loc, recorder.lastSignInTime.Location())
+	if recorder.lastCheckInTime.Location() != loc {
+		t.Errorf("Expected lastCheckInTime location to be %v, got %v", loc, recorder.lastCheckInTime.Location())
 	}
 
 	if recorder.location != loc {
@@ -197,99 +197,99 @@ func TestNewEmptySignInRecorder(t *testing.T) {
 	}
 }
 
-func TestNewSignInRecorder(t *testing.T) {
+func TestNewCheckInRecorder(t *testing.T) {
 	loc := time.UTC
 	now := time.Now().In(loc)
 
 	// Test cases for different Integer types
 	testCases := []struct {
-		name           string
-		recordRaw      any
-		lastSignInTime time.Time
-		expectedRecord uint64
+		name            string
+		recordRaw       any
+		lastCheckInTime time.Time
+		expectedRecord  uint64
 	}{
 		{
-			name:           "uint64",
-			recordRaw:      uint64(0b1010),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b1010),
+			name:            "uint64",
+			recordRaw:       uint64(0b1010),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b1010),
 		},
 		{
-			name:           "uint32",
-			recordRaw:      uint32(0b1100),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b1100),
+			name:            "uint32",
+			recordRaw:       uint32(0b1100),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b1100),
 		},
 		{
-			name:           "uint16",
-			recordRaw:      uint16(0b1111),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b1111),
+			name:            "uint16",
+			recordRaw:       uint16(0b1111),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b1111),
 		},
 		{
-			name:           "uint8",
-			recordRaw:      uint8(0b0001),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b0001),
+			name:            "uint8",
+			recordRaw:       uint8(0b0001),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b0001),
 		},
 		{
-			name:           "int64",
-			recordRaw:      int64(0b1010),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b1010),
+			name:            "int64",
+			recordRaw:       int64(0b1010),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b1010),
 		},
 		{
-			name:           "int64_negative",
-			recordRaw:      int64(-0b1010),
-			lastSignInTime: now,
-			expectedRecord: uint64(0xfffffffffffffff6),
+			name:            "int64_negative",
+			recordRaw:       int64(-0b1010),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0xfffffffffffffff6),
 		},
 		{
-			name:           "int32",
-			recordRaw:      int32(0b1100),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b1100),
+			name:            "int32",
+			recordRaw:       int32(0b1100),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b1100),
 		},
 		{
-			name:           "int32_negative",
-			recordRaw:      int32(-0b1100),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b11111111111111111111111111110100),
+			name:            "int32_negative",
+			recordRaw:       int32(-0b1100),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b11111111111111111111111111110100),
 		},
 		{
-			name:           "int16",
-			recordRaw:      int16(0b1111),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b1111),
+			name:            "int16",
+			recordRaw:       int16(0b1111),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b1111),
 		},
 		{
-			name:           "int16_negative",
-			recordRaw:      int16(-0b1111),
-			lastSignInTime: now,
-			expectedRecord: uint64(0xfff1),
+			name:            "int16_negative",
+			recordRaw:       int16(-0b1111),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0xfff1),
 		},
 		{
-			name:           "int8",
-			recordRaw:      int8(0b0001),
-			lastSignInTime: now,
-			expectedRecord: uint64(0b0001),
+			name:            "int8",
+			recordRaw:       int8(0b0001),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0b0001),
 		},
 		{
-			name:           "int8_negative",
-			recordRaw:      int8(-0b0001),
-			lastSignInTime: now,
-			expectedRecord: uint64(0xff),
+			name:            "int8_negative",
+			recordRaw:       int8(-0b0001),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(0xff),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			recorder := newSignInRecorderForTest(tc.recordRaw, tc.lastSignInTime)
+			recorder := newCheckInRecorderForTest(tc.recordRaw, tc.lastCheckInTime)
 			if recorder.record != tc.expectedRecord {
 				t.Errorf("For %s: Expected record to be %b, got %b", tc.name, tc.expectedRecord, recorder.record)
 			}
-			if !recorder.lastSignInTime.Equal(tc.lastSignInTime) {
-				t.Errorf("For %s: Expected lastSignInTime to be %v, got %v", tc.name, tc.lastSignInTime, recorder.lastSignInTime)
+			if !recorder.lastCheckInTime.Equal(tc.lastCheckInTime) {
+				t.Errorf("For %s: Expected lastCheckInTime to be %v, got %v", tc.name, tc.lastCheckInTime, recorder.lastCheckInTime)
 			}
 			if recorder.location != loc {
 				t.Errorf("For %s: Expected location to be %v, got %v", tc.name, loc, recorder.location)
@@ -301,151 +301,151 @@ func TestNewSignInRecorder(t *testing.T) {
 	}
 }
 
-func TestNewSignInRecorder2(t *testing.T) {
+func TestNewCheckInRecorder2(t *testing.T) {
 	loc := time.UTC
 	// Test case 1: New empty recorder
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	if recorder.record != 0 {
-		t.Errorf("NewEmptySignInRecorder: expected record to be 0, got %d", recorder.record)
+		t.Errorf("NewEmptyCheckInRecorder: expected record to be 0, got %d", recorder.record)
 	}
-	if !recorder.lastSignInTime.IsZero() {
-		t.Errorf("NewEmptySignInRecorder: expected lastSignInTime to be zero, got %v", recorder.lastSignInTime)
+	if !recorder.lastCheckInTime.IsZero() {
+		t.Errorf("NewEmptyCheckInRecorder: expected lastCheckInTime to be zero, got %v", recorder.lastCheckInTime)
 	}
 	if recorder.location != loc {
-		t.Errorf("NewEmptySignInRecorder: expected location to be %v, got %v", loc, recorder.location)
+		t.Errorf("NewEmptyCheckInRecorder: expected location to be %v, got %v", loc, recorder.location)
 	}
 
 	// Test case 2: New recorder with uint64 record
 	now := time.Now()
-	recorder = NewSignInRecorder[uint64](1, now)
+	recorder = NewCheckInRecorder[uint64](1, now)
 	if recorder.record != 1 {
-		t.Errorf("NewSignInRecorder[uint64]: expected record to be 1, got %d", recorder.record)
+		t.Errorf("NewCheckInRecorder[uint64]: expected record to be 1, got %d", recorder.record)
 	}
-	if !recorder.lastSignInTime.Equal(now) {
-		t.Errorf("NewSignInRecorder[uint64]: expected lastSignInTime to be %v, got %v", now, recorder.lastSignInTime)
+	if !recorder.lastCheckInTime.Equal(now) {
+		t.Errorf("NewCheckInRecorder[uint64]: expected lastCheckInTime to be %v, got %v", now, recorder.lastCheckInTime)
 	}
 	if recorder.location != now.Location() {
-		t.Errorf("NewSignInRecorder[uint64]: expected location to be %v, got %v", now.Location(), recorder.location)
+		t.Errorf("NewCheckInRecorder[uint64]: expected location to be %v, got %v", now.Location(), recorder.location)
 	}
 
 	// Test case 3: New recorder with int64 record
-	recorder = NewSignInRecorder[int64](-1, now)
+	recorder = NewCheckInRecorder[int64](-1, now)
 	if recorder.record != 18446744073709551615 {
-		t.Errorf("NewSignInRecorder[int64]: expected record to be -1 as uint64, got %d", recorder.record)
+		t.Errorf("NewCheckInRecorder[int64]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
-	if !recorder.lastSignInTime.Equal(now) {
-		t.Errorf("NewSignInRecorder[int64]: expected lastSignInTime to be %v, got %v", now, recorder.lastSignInTime)
+	if !recorder.lastCheckInTime.Equal(now) {
+		t.Errorf("NewCheckInRecorder[int64]: expected lastCheckInTime to be %v, got %v", now, recorder.lastCheckInTime)
 	}
 	if recorder.location != now.Location() {
-		t.Errorf("NewSignInRecorder[int64]: expected location to be %v, got %v", now.Location(), recorder.location)
+		t.Errorf("NewCheckInRecorder[int64]: expected location to be %v, got %v", now.Location(), recorder.location)
 	}
 
-	recorder = NewSignInRecorder[int32](-1, now)
+	recorder = NewCheckInRecorder[int32](-1, now)
 	if recorder.record != 4294967295 {
-		t.Errorf("NewSignInRecorder[int32]: expected record to be -1 as uint64, got %d", recorder.record)
+		t.Errorf("NewCheckInRecorder[int32]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
-	recorder = NewSignInRecorder[int16](-1, now)
+	recorder = NewCheckInRecorder[int16](-1, now)
 	if recorder.record != 65535 {
-		t.Errorf("NewSignInRecorder[int16]: expected record to be -1 as uint64, got %d", recorder.record)
+		t.Errorf("NewCheckInRecorder[int16]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
-	recorder = NewSignInRecorder[int8](-1, now)
+	recorder = NewCheckInRecorder[int8](-1, now)
 	if recorder.record != 255 {
-		t.Errorf("NewSignInRecorder[int8]: expected record to be -1 as uint64, got %d", recorder.record)
+		t.Errorf("NewCheckInRecorder[int8]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
 
 }
 
-func TestSignIn(t *testing.T) {
+func TestCheckIn(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
 
-	// Test case 1: First sign-in
-	recorder := NewEmptySignInRecorder(loc)
+	// Test case 1: First check-in
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
+	recorder.CheckIn()
 	if recorder.record != 1 {
-		t.Errorf("SignIn: expected record to be 1 after first sign-in, got %d", recorder.record)
+		t.Errorf("CheckIn: expected record to be 1 after first check-in, got %d", recorder.record)
 	}
-	if !recorder.lastSignInTime.Equal(mockTime) {
-		t.Errorf("SignIn: expected lastSignInTime to be %v, got %v", mockTime, recorder.lastSignInTime)
+	if !recorder.lastCheckInTime.Equal(mockTime) {
+		t.Errorf("CheckIn: expected lastCheckInTime to be %v, got %v", mockTime, recorder.lastCheckInTime)
 	}
-	// Test case 2: Second sign-in on the same day
-	recorder.SignIn()
+	// Test case 2: Second check-in on the same day
+	recorder.CheckIn()
 	if recorder.record != 1 {
-		t.Errorf("SignIn: expected record to be still 1 after second sign-in, got %d", recorder.record)
+		t.Errorf("CheckIn: expected record to be still 1 after second check-in, got %d", recorder.record)
 	}
 
-	// Test case 3: Sign-in next day
+	// Test case 3: check-in next day
 	mockTime = mockTime.AddDate(0, 0, 1)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
+	recorder.CheckIn()
 	if recorder.record != 3 {
-		t.Errorf("SignIn: expected record to be 3, got %d", recorder.record)
+		t.Errorf("CheckIn: expected record to be 3, got %d", recorder.record)
 	}
-	if !recorder.lastSignInTime.Equal(mockTime) {
-		t.Errorf("SignIn: expected lastSignInTime to be %v, got %v", mockTime, recorder.lastSignInTime)
+	if !recorder.lastCheckInTime.Equal(mockTime) {
+		t.Errorf("CheckIn: expected lastCheckInTime to be %v, got %v", mockTime, recorder.lastCheckInTime)
 	}
 
-	// Test case 4: sign-in after 65 days
+	// Test case 4: check-in after 65 days
 	mockTime = mockTime.AddDate(0, 0, 65)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
+	recorder.CheckIn()
 	if recorder.record != 1 {
-		t.Errorf("SignIn: expected record to be reset, got %d", recorder.record)
+		t.Errorf("CheckIn: expected record to be reset, got %d", recorder.record)
 	}
-	if !recorder.lastSignInTime.Equal(mockTime) {
-		t.Errorf("SignIn: expected lastSignInTime to be %v, got %v", mockTime, recorder.lastSignInTime)
+	if !recorder.lastCheckInTime.Equal(mockTime) {
+		t.Errorf("CheckIn: expected lastCheckInTime to be %v, got %v", mockTime, recorder.lastCheckInTime)
 	}
 }
 
-func TestCorrectSignInRecord(t *testing.T) {
+func TestCorrectCheckInRecord(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
 
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
+	recorder.CheckIn()
 
 	// Test case 1: same day
 	sameDay := mockTime.Add(time.Hour)
-	signed := recorder.correctSignInRecord(sameDay)
+	signed := recorder.correctCheckInRecord(sameDay)
 	if !signed {
-		t.Errorf("correctSignInRecord: expected true for same day, got false")
+		t.Errorf("correctCheckInRecord: expected true for same day, got false")
 	}
 	if recorder.record != 1 {
-		t.Errorf("correctSignInRecord: expected record is 1, got %d", recorder.record)
+		t.Errorf("correctCheckInRecord: expected record is 1, got %d", recorder.record)
 	}
 
 	// Test case 2: next day
 	nextDay := mockTime.AddDate(0, 0, 1)
-	signed = recorder.correctSignInRecord(nextDay)
+	signed = recorder.correctCheckInRecord(nextDay)
 	if signed {
-		t.Errorf("correctSignInRecord: expected false for next day, got true")
+		t.Errorf("correctCheckInRecord: expected false for next day, got true")
 	}
 	if recorder.record != 2 {
-		t.Errorf("correctSignInRecord: expected record to be shifted, got %d", recorder.record)
+		t.Errorf("correctCheckInRecord: expected record to be shifted, got %d", recorder.record)
 	}
 
 	// Test case 3: two days later
 	twoDaysLater := mockTime.AddDate(0, 0, 2)
-	signed = recorder.correctSignInRecord(twoDaysLater)
+	signed = recorder.correctCheckInRecord(twoDaysLater)
 	if signed {
-		t.Errorf("correctSignInRecord: expected false for 2 days later, got true")
+		t.Errorf("correctCheckInRecord: expected false for 2 days later, got true")
 	}
 	if recorder.record != 8 {
-		t.Errorf("correctSignInRecord: expected record to be 8, got %d", recorder.record)
+		t.Errorf("correctCheckInRecord: expected record to be 8, got %d", recorder.record)
 	}
 
 	// Test case 4: beyond 64 days
 	recorder.record = 1
-	recorder.lastSignInTime = mockTime
+	recorder.lastCheckInTime = mockTime
 	beyond64Days := mockTime.AddDate(0, 0, 65)
-	signed = recorder.correctSignInRecord(beyond64Days)
+	signed = recorder.correctCheckInRecord(beyond64Days)
 	if signed {
-		t.Errorf("correctSignInRecord: expected false after 65 days, got true")
+		t.Errorf("correctCheckInRecord: expected false after 65 days, got true")
 	}
 	if recorder.record != 0 {
-		t.Errorf("correctSignInRecord: expected record to be reset after 65 days, got %d", recorder.record)
+		t.Errorf("correctCheckInRecord: expected record to be reset after 65 days, got %d", recorder.record)
 	}
 }
 
@@ -498,48 +498,48 @@ func TestCalculateDaysDiff(t *testing.T) {
 func TestRawRecord(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
 
-	// Test case 1: no sign-in
-	record, lastSignInTime := recorder.RawRecord()
+	// Test case 1: no check-in
+	record, lastCheckInTime := recorder.RawRecord()
 	if record != 0 {
 		t.Errorf("RawRecord: expected record to be 0, got %d", record)
 	}
-	if !lastSignInTime.IsZero() {
-		t.Errorf("RawRecord: expected lastSignInTime to be zero, got %v", lastSignInTime)
+	if !lastCheckInTime.IsZero() {
+		t.Errorf("RawRecord: expected lastCheckInTime to be zero, got %v", lastCheckInTime)
 	}
 
-	// Test case 2: after one sign-in
-	recorder.SignIn()
-	record, lastSignInTime = recorder.RawRecord()
+	// Test case 2: after one check-in
+	recorder.CheckIn()
+	record, lastCheckInTime = recorder.RawRecord()
 	if record != 1 {
 		t.Errorf("RawRecord: expected record to be 1, got %d", record)
 	}
-	if !lastSignInTime.Equal(mockTime) {
-		t.Errorf("RawRecord: expected lastSignInTime to be %v, got %v", mockTime, lastSignInTime)
+	if !lastCheckInTime.Equal(mockTime) {
+		t.Errorf("RawRecord: expected lastCheckInTime to be %v, got %v", mockTime, lastCheckInTime)
 	}
 
 	// Test case 3: after multiple sign-ins
 	mockTime = mockTime.AddDate(0, 0, 2)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
-	record, lastSignInTime = recorder.RawRecord()
+	recorder.CheckIn()
+	record, lastCheckInTime = recorder.RawRecord()
 	if record != 5 {
 		t.Errorf("RawRecord: expected record to be 5, got %d", record)
 	}
-	if !lastSignInTime.Equal(mockTime) {
-		t.Errorf("RawRecord: expected lastSignInTime to be %v, got %v", mockTime, lastSignInTime)
+	if !lastCheckInTime.Equal(mockTime) {
+		t.Errorf("RawRecord: expected lastCheckInTime to be %v, got %v", mockTime, lastCheckInTime)
 	}
 }
 
 func TestRecord(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
 
-	// Test case 1: no sign-in
+	// Test case 1: no check-in
 	record := recorder.Record()
 	if len(record) != 64 {
 		t.Errorf("Record: expected record length to be 64, got %d", len(record))
@@ -549,11 +549,11 @@ func TestRecord(t *testing.T) {
 			t.Errorf("Record: expected all values to be false, got true")
 		}
 	}
-	// Test case 2: one sign-in
-	recorder.SignIn()
+	// Test case 2: one check-in
+	recorder.CheckIn()
 	record = recorder.Record()
 	if !record[0] {
-		t.Errorf("Record: expected record[0] to be true after first sign-in, got false")
+		t.Errorf("Record: expected record[0] to be true after first check-in, got false")
 	}
 	for i := 1; i < len(record); i++ {
 		if record[i] {
@@ -564,7 +564,7 @@ func TestRecord(t *testing.T) {
 	// Test case 3: multiple sign-ins
 	mockTime = mockTime.AddDate(0, 0, 2)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
+	recorder.CheckIn()
 	record = recorder.Record()
 	if !record[0] || !record[2] {
 		t.Errorf("Record: expected record[0] and record[2] to be true, got false")
@@ -579,73 +579,73 @@ func TestRecord(t *testing.T) {
 	}
 }
 
-func TestGetSignInRecordN(t *testing.T) {
+func TestGetCheckInRecordN(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
 
 	// Test case 1: valid n
 	n := 10
 	record := recorder.RecordN(n)
 	if len(record) != n {
-		t.Errorf("GetSignInRecordN: expected length to be %d, got %d", n, len(record))
+		t.Errorf("GetCheckInRecordN: expected length to be %d, got %d", n, len(record))
 	}
 
 	// Test case 2: n = 0
 	n = 0
 	record = recorder.RecordN(n)
 	if len(record) != 0 {
-		t.Errorf("GetSignInRecordN: expected length to be %d, got %d", n, len(record))
+		t.Errorf("GetCheckInRecordN: expected length to be %d, got %d", n, len(record))
 	}
 	// Test case 3: sign in and check
-	recorder.SignIn()
+	recorder.CheckIn()
 	record = recorder.RecordN(1)
 	if !record[0] {
-		t.Errorf("GetSignInRecordN: expected index 0 to be true after signing in, got false")
+		t.Errorf("GetCheckInRecordN: expected index 0 to be true after CheckIng in, got false")
 	}
 
 	// Test case 4: invalid n
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("GetSignInRecordN: expected panic for n out of range")
+			t.Errorf("GetCheckInRecordN: expected panic for n out of range")
 		}
 	}()
 	recorder.RecordN(65)
 }
 
-func TestHasSignIn(t *testing.T) {
+func TestHasCheckIn(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
 
-	// Test case 1: no sign-in
-	if recorder.HasSignIn(0) {
-		t.Errorf("HasSignIn: expected false for no sign-in, got true")
+	// Test case 1: no check-in
+	if recorder.HasCheckIn(0) {
+		t.Errorf("HasCheckIn: expected false for no check-in, got true")
 	}
 
-	// Test case 2: valid day sign-in
-	recorder.SignIn()
-	if !recorder.HasSignIn(0) {
-		t.Errorf("HasSignIn: expected true for sign-in on day 0, got false")
+	// Test case 2: valid day check-in
+	recorder.CheckIn()
+	if !recorder.HasCheckIn(0) {
+		t.Errorf("HasCheckIn: expected true for check-in on day 0, got false")
 	}
-	if recorder.HasSignIn(1) {
-		t.Errorf("HasSignIn: expected false for not sign-in on day 1, got true")
+	if recorder.HasCheckIn(1) {
+		t.Errorf("HasCheckIn: expected false for not check-in on day 1, got true")
 	}
 	// Test case 3: invalid day
-	if recorder.HasSignIn(-1) {
-		t.Errorf("HasSignIn: expected false for negative day index, got true")
+	if recorder.HasCheckIn(-1) {
+		t.Errorf("HasCheckIn: expected false for negative day index, got true")
 	}
-	if recorder.HasSignIn(64) {
-		t.Errorf("HasSignIn: expected false for day index over 63, got true")
+	if recorder.HasCheckIn(64) {
+		t.Errorf("HasCheckIn: expected false for day index over 63, got true")
 	}
-	// Test case 4: multi-sign-in
+	// Test case 4: multi-check-in
 	mockTime = mockTime.AddDate(0, 0, 2)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
-	if !recorder.HasSignIn(2) {
-		t.Errorf("HasSignIn: expected true for sign-in on day 2, got false")
+	recorder.CheckIn()
+	if !recorder.HasCheckIn(2) {
+		t.Errorf("HasCheckIn: expected true for check-in on day 2, got false")
 	}
 
 }
@@ -653,58 +653,58 @@ func TestHasSignIn(t *testing.T) {
 func TestHasSignedToday(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 	recorder.SetClock(func() time.Time { return mockTime })
 
-	// Test case 1: first sign-in of the day
+	// Test case 1: first check-in of the day
 	if recorder.HasSignedToday() {
-		t.Errorf("HasSignedToday: expected false before sign-in, got true")
+		t.Errorf("HasSignedToday: expected false before check-in, got true")
 	}
-	recorder.SignIn()
+	recorder.CheckIn()
 	if !recorder.HasSignedToday() {
-		t.Errorf("HasSignedToday: expected true after first sign-in, got false")
+		t.Errorf("HasSignedToday: expected true after first check-in, got false")
 	}
 
-	// Test case 2: sign-in next day
+	// Test case 2: check-in next day
 	mockTime = mockTime.AddDate(0, 0, 1)
 	recorder.SetClock(func() time.Time { return mockTime })
 	if recorder.HasSignedToday() {
-		t.Errorf("HasSignedToday: expected false before sign-in, got true")
+		t.Errorf("HasSignedToday: expected false before check-in, got true")
 	}
-	recorder.SignIn()
+	recorder.CheckIn()
 	if !recorder.HasSignedToday() {
-		t.Errorf("HasSignedToday: expected true after first sign-in, got false")
+		t.Errorf("HasSignedToday: expected true after first check-in, got false")
 	}
 
-	// Test case 3: same day sign-in
+	// Test case 3: same day check-in
 	if !recorder.HasSignedToday() {
-		t.Errorf("HasSignedToday: expected true after same day sign-in, got false")
+		t.Errorf("HasSignedToday: expected true after same day check-in, got false")
 	}
 }
 
-func TestSignInWithDifferentTimeZones(t *testing.T) {
+func TestCheckInWithDifferentTimeZones(t *testing.T) {
 	utc := time.UTC
 	loc, _ := time.LoadLocation("America/Los_Angeles") // PST
 	mockTime := time.Date(2024, time.January, 1, 10, 0, 0, 0, loc)
 
 	// Create two recorders, one in UTC, one in PST
-	recorderUTC := NewEmptySignInRecorder(utc)
+	recorderUTC := NewEmptyCheckInRecorder(utc)
 	recorderUTC.SetClock(func() time.Time { return mockTime.In(utc) })
-	recorderPST := NewEmptySignInRecorder(loc)
+	recorderPST := NewEmptyCheckInRecorder(loc)
 	recorderPST.SetClock(func() time.Time { return mockTime })
 
-	// First sign-in.
-	recorderUTC.SignIn()
-	recorderPST.SignIn()
+	// First check-in.
+	recorderUTC.CheckIn()
+	recorderPST.CheckIn()
 
 	// Check raw record
 	rawRecordUTC, _ := recorderUTC.RawRecord()
 	rawRecordPST, _ := recorderPST.RawRecord()
 	if rawRecordUTC != 1 {
-		t.Errorf("TestSignInWithDifferentTimeZones (UTC): Expected record to be 1, got %d", rawRecordUTC)
+		t.Errorf("TestCheckInWithDifferentTimeZones (UTC): Expected record to be 1, got %d", rawRecordUTC)
 	}
 	if rawRecordPST != 1 {
-		t.Errorf("TestSignInWithDifferentTimeZones (PST): Expected record to be 1, got %d", rawRecordPST)
+		t.Errorf("TestCheckInWithDifferentTimeZones (PST): Expected record to be 1, got %d", rawRecordPST)
 	}
 
 	// Move to next day in PST
@@ -712,175 +712,175 @@ func TestSignInWithDifferentTimeZones(t *testing.T) {
 	recorderUTC.SetClock(func() time.Time { return mockTime.In(utc) })
 	recorderPST.SetClock(func() time.Time { return mockTime })
 
-	//Second sign-in
-	recorderUTC.SignIn()
-	recorderPST.SignIn()
+	//Second check-in
+	recorderUTC.CheckIn()
+	recorderPST.CheckIn()
 
 	// check raw record again
 	rawRecordUTC, _ = recorderUTC.RawRecord()
 	rawRecordPST, _ = recorderPST.RawRecord()
 	if rawRecordUTC != 3 {
-		t.Errorf("TestSignInWithDifferentTimeZones (UTC): Expected record to be 3, got %d", rawRecordUTC)
+		t.Errorf("TestCheckInWithDifferentTimeZones (UTC): Expected record to be 3, got %d", rawRecordUTC)
 	}
 	if rawRecordPST != 3 {
-		t.Errorf("TestSignInWithDifferentTimeZones (PST): Expected record to be 3, got %d", rawRecordPST)
+		t.Errorf("TestCheckInWithDifferentTimeZones (PST): Expected record to be 3, got %d", rawRecordPST)
 	}
 
-	// Check HasSignIn
-	if !recorderUTC.HasSignIn(0) {
-		t.Errorf("TestSignInWithDifferentTimeZones (UTC): Expected HasSignIn(0) to be true, got false")
+	// Check HasCheckIn
+	if !recorderUTC.HasCheckIn(0) {
+		t.Errorf("TestCheckInWithDifferentTimeZones (UTC): Expected HasCheckIn(0) to be true, got false")
 	}
-	if !recorderPST.HasSignIn(0) {
-		t.Errorf("TestSignInWithDifferentTimeZones (PST): Expected HasSignIn(0) to be true, got false")
+	if !recorderPST.HasCheckIn(0) {
+		t.Errorf("TestCheckInWithDifferentTimeZones (PST): Expected HasCheckIn(0) to be true, got false")
 	}
-	if !recorderUTC.HasSignIn(1) {
-		t.Errorf("TestSignInWithDifferentTimeZones (UTC): Expected HasSignIn(1) to be true, got false")
+	if !recorderUTC.HasCheckIn(1) {
+		t.Errorf("TestCheckInWithDifferentTimeZones (UTC): Expected HasCheckIn(1) to be true, got false")
 	}
-	if !recorderPST.HasSignIn(1) {
-		t.Errorf("TestSignInWithDifferentTimeZones (PST): Expected HasSignIn(1) to be true, got false")
+	if !recorderPST.HasCheckIn(1) {
+		t.Errorf("TestCheckInWithDifferentTimeZones (PST): Expected HasCheckIn(1) to be true, got false")
 	}
 
 	// Check hasSignedToday
 	if !recorderUTC.HasSignedToday() {
-		t.Errorf("TestSignInWithDifferentTimeZones (UTC): Expected HasSignedToday() to be true, got false")
+		t.Errorf("TestCheckInWithDifferentTimeZones (UTC): Expected HasSignedToday() to be true, got false")
 	}
 	if !recorderPST.HasSignedToday() {
-		t.Errorf("TestSignInWithDifferentTimeZones (PST): Expected HasSignedToday() to be true, got false")
+		t.Errorf("TestCheckInWithDifferentTimeZones (PST): Expected HasSignedToday() to be true, got false")
 	}
 }
 
-func TestSignInRecorder_GetConsecutiveSignInDays(t *testing.T) {
+func TestCheckInRecorder_GetConsecutiveCheckInDays(t *testing.T) {
 	loc := time.UTC
 	now := time.Date(2024, 1, 10, 12, 0, 0, 0, loc)
 	clock := func() time.Time { return now }
 	tests := []struct {
-		name           string
-		record         uint64
-		lastSignInTime time.Time
-		expectedDays   int
+		name            string
+		record          uint64
+		lastCheckInTime time.Time
+		expectedDays    int
 	}{
 		{
-			name:           "empty record",
-			record:         0,
-			lastSignInTime: now.Add(-time.Hour * 24),
-			expectedDays:   0,
+			name:            "empty record",
+			record:          0,
+			lastCheckInTime: now.Add(-time.Hour * 24),
+			expectedDays:    0,
 		},
 		{
-			name:           "single sign-in",
-			record:         1,
-			lastSignInTime: now,
-			expectedDays:   1,
+			name:            "single check-in",
+			record:          1,
+			lastCheckInTime: now,
+			expectedDays:    1,
 		},
 		{
-			name:           "multiple consecutive sign-ins",
-			record:         0b1111,
-			lastSignInTime: now,
-			expectedDays:   4,
+			name:            "multiple consecutive sign-ins",
+			record:          0b1111,
+			lastCheckInTime: now,
+			expectedDays:    4,
 		},
 		{
-			name:           "non-consecutive sign-ins",
-			record:         0b1011,
-			lastSignInTime: now,
-			expectedDays:   2,
+			name:            "non-consecutive sign-ins",
+			record:          0b1011,
+			lastCheckInTime: now,
+			expectedDays:    2,
 		},
 		{
-			name:           "all 64 sign-ins",
-			record:         ^uint64(0),
-			lastSignInTime: now,
-			expectedDays:   64,
+			name:            "all 64 sign-ins",
+			record:          ^uint64(0),
+			lastCheckInTime: now,
+			expectedDays:    64,
 		},
 		{
-			name:           "sign-ins with time gap",
-			record:         0b11,
-			lastSignInTime: now.Add(-time.Hour * 25),
-			expectedDays:   0,
+			name:            "sign-ins with time gap",
+			record:          0b11,
+			lastCheckInTime: now.Add(-time.Hour * 25),
+			expectedDays:    0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSignInRecorder(tt.record, tt.lastSignInTime.In(loc))
+			s := NewCheckInRecorder(tt.record, tt.lastCheckInTime.In(loc))
 			s.SetClock(clock)
-			actualDays := s.ConsecutiveSignInDays()
+			actualDays := s.ConsecutiveCheckInDays()
 			if actualDays != tt.expectedDays {
-				t.Errorf("GetConsecutiveSignInDays() = %v, want %v", actualDays, tt.expectedDays)
+				t.Errorf("GetConsecutiveCheckInDays() = %v, want %v", actualDays, tt.expectedDays)
 			}
 		})
 	}
 }
 
-func TestSignInRecorder_DaysToNextMilestone(t *testing.T) {
+func TestCheckInRecorder_DaysToNextMilestone(t *testing.T) {
 	loc := time.UTC
 	now := time.Date(2024, 1, 10, 12, 0, 0, 0, loc)
 	clock := func() time.Time { return now }
 	tests := []struct {
-		name           string
-		record         uint64
-		lastSignInTime time.Time
-		milestone      int
-		expectedDays   int
+		name            string
+		record          uint64
+		lastCheckInTime time.Time
+		milestone       int
+		expectedDays    int
 	}{
 		{
-			name:           "empty record, milestone 7",
-			record:         0,
-			lastSignInTime: now,
-			milestone:      7,
-			expectedDays:   7,
+			name:            "empty record, milestone 7",
+			record:          0,
+			lastCheckInTime: now,
+			milestone:       7,
+			expectedDays:    7,
 		},
 		{
-			name:           "empty record, milestone 30",
-			record:         0,
-			lastSignInTime: now,
-			milestone:      30,
-			expectedDays:   30,
+			name:            "empty record, milestone 30",
+			record:          0,
+			lastCheckInTime: now,
+			milestone:       30,
+			expectedDays:    30,
 		},
 		{
-			name:           "single sign-in, milestone 7",
-			record:         1,
-			lastSignInTime: now,
-			milestone:      7,
-			expectedDays:   6,
+			name:            "single check-in, milestone 7",
+			record:          1,
+			lastCheckInTime: now,
+			milestone:       7,
+			expectedDays:    6,
 		},
 		{
-			name:           "consecutive sign-ins < milestone",
-			record:         0b111,
-			lastSignInTime: now,
-			milestone:      7,
-			expectedDays:   4,
+			name:            "consecutive sign-ins < milestone",
+			record:          0b111,
+			lastCheckInTime: now,
+			milestone:       7,
+			expectedDays:    4,
 		},
 		{
-			name:           "consecutive sign-ins == milestone",
-			record:         0b1111111,
-			lastSignInTime: now,
-			milestone:      7,
-			expectedDays:   0,
+			name:            "consecutive sign-ins == milestone",
+			record:          0b1111111,
+			lastCheckInTime: now,
+			milestone:       7,
+			expectedDays:    0,
 		},
 		{
-			name:           "consecutive sign-ins > milestone",
-			record:         0b11111111,
-			lastSignInTime: now,
-			milestone:      7,
-			expectedDays:   0,
+			name:            "consecutive sign-ins > milestone",
+			record:          0b11111111,
+			lastCheckInTime: now,
+			milestone:       7,
+			expectedDays:    0,
 		},
 		{
-			name:           "consecutive sign-ins with time gap",
-			record:         0b11,
-			lastSignInTime: now.Add(-time.Hour * 25),
-			milestone:      7,
-			expectedDays:   7,
+			name:            "consecutive sign-ins with time gap",
+			record:          0b11,
+			lastCheckInTime: now.Add(-time.Hour * 25),
+			milestone:       7,
+			expectedDays:    7,
 		},
 		{
-			name:           "consecutive sign-ins with large milestone",
-			record:         0b1111111,
-			lastSignInTime: now,
-			milestone:      100,
-			expectedDays:   93,
+			name:            "consecutive sign-ins with large milestone",
+			record:          0b1111111,
+			lastCheckInTime: now,
+			milestone:       100,
+			expectedDays:    93,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSignInRecorder(tt.record, tt.lastSignInTime.In(loc))
+			s := NewCheckInRecorder(tt.record, tt.lastCheckInTime.In(loc))
 			s.SetClock(clock)
 			actualDays := s.DaysToNextMilestone(tt.milestone)
 			if actualDays != tt.expectedDays {
@@ -889,27 +889,27 @@ func TestSignInRecorder_DaysToNextMilestone(t *testing.T) {
 		})
 	}
 }
-func ExampleSignInRecorder() {
+func ExampleCheckInRecorder() {
 	loc, _ := time.LoadLocation("America/New_York")
-	recorder := NewEmptySignInRecorder(loc)
+	recorder := NewEmptyCheckInRecorder(loc)
 
 	fmt.Println("Initial record:", recorder.Record())
 
-	recorder.SignIn()
+	recorder.CheckIn()
 
-	fmt.Println("Record after first sign-in:", recorder.Record())
+	fmt.Println("Record after first check-in:", recorder.Record())
 
-	recorder.SignIn()
+	recorder.CheckIn()
 	fmt.Println("Has signed today:", recorder.HasSignedToday())
-	fmt.Println("Record after same day sign-in:", recorder.Record())
+	fmt.Println("Record after same day check-in:", recorder.Record())
 
 	mockTime := time.Now().AddDate(0, 0, 2)
 	recorder.SetClock(func() time.Time { return mockTime })
-	recorder.SignIn()
+	recorder.CheckIn()
 
-	fmt.Println("Record after 2 days later sign-in:", recorder.Record())
-	fmt.Println("Sign-in on day 0:", recorder.HasSignIn(0))
-	fmt.Println("Sign-in on day 2:", recorder.HasSignIn(2))
+	fmt.Println("Record after 2 days later check-in:", recorder.Record())
+	fmt.Println("check-in on day 0:", recorder.HasCheckIn(0))
+	fmt.Println("check-in on day 2:", recorder.HasCheckIn(2))
 
 	rawRecord, _ := recorder.RawRecord()
 	fmt.Println("Raw record:", rawRecord)
@@ -919,12 +919,12 @@ func ExampleSignInRecorder() {
 	fmt.Println("Get record with n = ", n, ":", nRecord)
 	// Output:
 	// Initial record: [false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
-	// Record after first sign-in: [true false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
+	// Record after first check-in: [true false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
 	// Has signed today: true
-	// Record after same day sign-in: [true false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
-	// Record after 2 days later sign-in: [true false true false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
-	// Sign-in on day 0: true
-	// Sign-in on day 2: true
+	// Record after same day check-in: [true false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
+	// Record after 2 days later check-in: [true false true false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false]
+	// check-in on day 0: true
+	// check-in on day 2: true
 	// Raw record: 5
 	// Get record with n =  3 : [true false true]
 }

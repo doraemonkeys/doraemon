@@ -54,26 +54,26 @@ func HexToInt2(hex string) (int64, error) {
 	return result, nil
 }
 
-// SignInRecorder is a daily sign-in recorder that resets at midnight.
+// CheckInRecorder is a daily check-in recorder that resets at midnight.
 // It's not thread-safe and requires external locking for concurrent access.
-// It uses a uint64 to store the sign-in status, each bit represents a day's sign-in status: 0 for not signed in, 1 for signed in.
+// It uses a uint64 to store the check-in status, each bit represents a day's check-in status: 0 for not checked in, 1 for checked in.
 // It can record up to 64 days.
-type SignInRecorder struct {
-	// record stores the sign-in status. Each bit represents a day's sign-in status: 0 for not signed in, 1 for signed in.
+type CheckInRecorder struct {
+	// record stores the check-in status. Each bit represents a day's check-in status: 0 for not checked in, 1 for checked in.
 	// It can record up to 64 days.
-	record         uint64
-	lastSignInTime time.Time
-	location       *time.Location
-	clock          func() time.Time
+	record          uint64
+	lastCheckInTime time.Time
+	location        *time.Location
+	clock           func() time.Time
 }
 
-// NewEmptySignInRecorder creates a new SignInRecorder with no sign-in history.
-func NewEmptySignInRecorder(location *time.Location) *SignInRecorder {
-	return &SignInRecorder{
-		record:         0,
-		location:       location,
-		lastSignInTime: time.Time{}.In(location),
-		clock:          time.Now,
+// NewEmptyCheckInRecorder creates a new CheckInRecorder with no check-in history.
+func NewEmptyCheckInRecorder(location *time.Location) *CheckInRecorder {
+	return &CheckInRecorder{
+		record:          0,
+		location:        location,
+		lastCheckInTime: time.Time{}.In(location),
+		clock:           time.Now,
 	}
 }
 
@@ -82,14 +82,14 @@ type Integer interface {
 	~uint64 | ~uint32 | ~uint16 | ~uint8 | ~int64 | ~int32 | ~int16 | ~int8
 }
 
-// NewSignInRecorder creates a new SignInRecorder with existing record and last sign-in time.
-func NewSignInRecorder[T Integer](recordRaw T, lastSignInTime time.Time) *SignInRecorder {
+// NewCheckInRecorder creates a new CheckInRecorder with existing record and last check-in time.
+func NewCheckInRecorder[T Integer](recordRaw T, lastCheckInTime time.Time) *CheckInRecorder {
 	if recordRaw >= 0 {
-		return &SignInRecorder{
-			record:         uint64(recordRaw),
-			lastSignInTime: lastSignInTime,
-			location:       lastSignInTime.Location(),
-			clock:          time.Now,
+		return &CheckInRecorder{
+			record:          uint64(recordRaw),
+			lastCheckInTime: lastCheckInTime,
+			location:        lastCheckInTime.Location(),
+			clock:           time.Now,
 		}
 	}
 	var record uint64
@@ -105,39 +105,39 @@ func NewSignInRecorder[T Integer](recordRaw T, lastSignInTime time.Time) *SignIn
 	default:
 		panic("unreachable")
 	}
-	return &SignInRecorder{
-		record:         record,
-		lastSignInTime: lastSignInTime,
-		location:       lastSignInTime.Location(),
-		clock:          time.Now,
+	return &CheckInRecorder{
+		record:          record,
+		lastCheckInTime: lastCheckInTime,
+		location:        lastCheckInTime.Location(),
+		clock:           time.Now,
 	}
 }
 
-func (s *SignInRecorder) SetClock(clock func() time.Time) {
+func (s *CheckInRecorder) SetClock(clock func() time.Time) {
 	s.clock = clock
 }
 
-// SignIn records a new sign-in.
+// CheckIn records a new check-in.
 // It returns false if the user has already signed in today.
-func (s *SignInRecorder) SignIn() bool {
+func (s *CheckInRecorder) CheckIn() bool {
 	now := s.clock().In(s.location)
-	if !s.correctSignInRecord(now) {
+	if !s.correctCheckInRecord(now) {
 		s.record |= 1
-		s.lastSignInTime = now
+		s.lastCheckInTime = now
 		return true
 	}
 	return false
 }
 
-// correctSignInRecord corrects the sign-in record based on the current time.
+// correctCheckInRecord corrects the check-in record based on the current time.
 // It returns true if the user has already signed in today, false otherwise.
-func (s *SignInRecorder) correctSignInRecord(now time.Time) (signed bool) {
+func (s *CheckInRecorder) correctCheckInRecord(now time.Time) (signed bool) {
 	if s.record == 0 {
 		// Already cleared, no need to reset.
 		return false
 	}
-	// Calculate the difference in days between the last sign-in time and today's midnight.
-	diffDays := calculateDaysDiff(s.lastSignInTime, now)
+	// Calculate the difference in days between the last check-in time and today's midnight.
+	diffDays := calculateDaysDiff(s.lastCheckInTime, now)
 	if diffDays <= 0 {
 		// Already signed in today.
 		return true
@@ -173,23 +173,23 @@ func calculateDaysDiff(lastCheckIn time.Time, now time.Time) int {
 	return int(diff.Hours()/24) + 1
 }
 
-// RawRecord returns the raw record value and last sign-in time.
-func (s *SignInRecorder) RawRecord() (record uint64, lastSignInTime time.Time) {
-	s.correctSignInRecord(s.clock().In(s.location))
-	return s.record, s.lastSignInTime
+// RawRecord returns the raw record value and last check-in time.
+func (s *CheckInRecorder) RawRecord() (record uint64, lastCheckInTime time.Time) {
+	s.correctCheckInRecord(s.clock().In(s.location))
+	return s.record, s.lastCheckInTime
 }
 
-// Record returns the sign-in record as a boolean slice.
-func (s *SignInRecorder) Record() []bool {
+// Record returns the check-in record as a boolean slice.
+func (s *CheckInRecorder) Record() []bool {
 	return s.RecordN(64)
 }
 
-// RecordN returns the sign-in record as a boolean slice with the specified length.
-func (s *SignInRecorder) RecordN(n int) []bool {
+// RecordN returns the check-in record as a boolean slice with the specified length.
+func (s *CheckInRecorder) RecordN(n int) []bool {
 	if n < 0 || n > 64 {
 		panic("n must be between 0 and 64")
 	}
-	s.correctSignInRecord(s.clock().In(s.location))
+	s.correctCheckInRecord(s.clock().In(s.location))
 	record := make([]bool, n)
 	for i := 0; i < n; i++ {
 		record[i] = (s.record & (1 << i)) != 0
@@ -197,23 +197,23 @@ func (s *SignInRecorder) RecordN(n int) []bool {
 	return record
 }
 
-// HasSignIn checks if the user has signed in on the specified day (0-based index).
-func (s *SignInRecorder) HasSignIn(day int) bool {
+// HasCheckIn checks if the user has signed in on the specified day (0-based index).
+func (s *CheckInRecorder) HasCheckIn(day int) bool {
 	if day < 0 || day >= 64 {
 		return false
 	}
-	s.correctSignInRecord(s.clock().In(s.location))
+	s.correctCheckInRecord(s.clock().In(s.location))
 	return (s.record & (1 << day)) != 0
 }
 
 // HasSignedToday checks if the user has already signed in today.
-func (s *SignInRecorder) HasSignedToday() bool {
-	return s.correctSignInRecord(s.clock().In(s.location))
+func (s *CheckInRecorder) HasSignedToday() bool {
+	return s.correctCheckInRecord(s.clock().In(s.location))
 }
 
-// ConsecutiveSignInDays returns the number of consecutive sign-in days.
-func (s *SignInRecorder) ConsecutiveSignInDays() int {
-	s.correctSignInRecord(s.clock().In(s.location))
+// ConsecutiveCheckInDays returns the number of consecutive check-in days.
+func (s *CheckInRecorder) ConsecutiveCheckInDays() int {
+	s.correctCheckInRecord(s.clock().In(s.location))
 	consecutiveDays := 0
 	for i := 0; i < 64; i++ {
 		if s.record&(1<<i) == 0 {
@@ -225,32 +225,32 @@ func (s *SignInRecorder) ConsecutiveSignInDays() int {
 }
 
 // DaysToNextMilestone returns the remaining days to reach the next milestone (e.g., 7-day, 30-day).
-func (s *SignInRecorder) DaysToNextMilestone(milestone int) int {
-	consecutive := s.ConsecutiveSignInDays()
+func (s *CheckInRecorder) DaysToNextMilestone(milestone int) int {
+	consecutive := s.ConsecutiveCheckInDays()
 	if consecutive >= milestone {
 		return 0
 	}
 	return milestone - consecutive
 }
 
-func newSignInRecorderForTest(record any, lastSignInTime time.Time) *SignInRecorder {
+func newCheckInRecorderForTest(record any, lastCheckInTime time.Time) *CheckInRecorder {
 	switch any(record).(type) {
 	case uint64:
-		return NewSignInRecorder(record.(uint64), lastSignInTime)
+		return NewCheckInRecorder(record.(uint64), lastCheckInTime)
 	case uint32:
-		return NewSignInRecorder(record.(uint32), lastSignInTime)
+		return NewCheckInRecorder(record.(uint32), lastCheckInTime)
 	case uint16:
-		return NewSignInRecorder(record.(uint16), lastSignInTime)
+		return NewCheckInRecorder(record.(uint16), lastCheckInTime)
 	case uint8:
-		return NewSignInRecorder(record.(uint8), lastSignInTime)
+		return NewCheckInRecorder(record.(uint8), lastCheckInTime)
 	case int64:
-		return NewSignInRecorder(record.(int64), lastSignInTime)
+		return NewCheckInRecorder(record.(int64), lastCheckInTime)
 	case int32:
-		return NewSignInRecorder(record.(int32), lastSignInTime)
+		return NewCheckInRecorder(record.(int32), lastCheckInTime)
 	case int16:
-		return NewSignInRecorder(record.(int16), lastSignInTime)
+		return NewCheckInRecorder(record.(int16), lastCheckInTime)
 	case int8:
-		return NewSignInRecorder(record.(int8), lastSignInTime)
+		return NewCheckInRecorder(record.(int8), lastCheckInTime)
 	default:
 		panic("unreachable")
 	}
