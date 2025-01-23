@@ -118,12 +118,15 @@ func (s *SignInRecorder) SetClock(clock func() time.Time) {
 }
 
 // SignIn records a new sign-in.
-func (s *SignInRecorder) SignIn() {
+// It returns false if the user has already signed in today.
+func (s *SignInRecorder) SignIn() bool {
 	now := s.clock().In(s.location)
 	if !s.correctSignInRecord(now) {
 		s.record |= 1
 		s.lastSignInTime = now
+		return true
 	}
+	return false
 }
 
 // correctSignInRecord corrects the sign-in record based on the current time.
