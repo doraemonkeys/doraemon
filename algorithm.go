@@ -82,8 +82,21 @@ type Integer interface {
 	~uint64 | ~uint32 | ~uint16 | ~uint8 | ~int64 | ~int32 | ~int16 | ~int8
 }
 
-// NewCheckInRecorder creates a new CheckInRecorder with existing record and last check-in time.
+// newCheckInRecorder creates a new CheckInRecorder with existing record and last check-in time.
 func NewCheckInRecorder[T Integer](recordRaw T, lastCheckInTime time.Time) *CheckInRecorder {
+	recorder := newCheckInRecorder(recordRaw, lastCheckInTime)
+	diffDays := calculateDaysDiff(recorder.lastCheckInTime, recorder.clock().In(recorder.location))
+	if diffDays <= 0 && recorder.record&1 == 0 {
+		panic("already checked in today, but today's record is 0")
+	}
+	return recorder
+}
+
+func newCheckInRecorder[T Integer](recordRaw T, lastCheckInTime time.Time) *CheckInRecorder {
+	if lastCheckInTime.IsZero() && recordRaw != 0 {
+		panic("lastCheckInTime is zero, but recordRaw is not zero")
+	}
+	// var recorder *CheckInRecorder
 	if recordRaw >= 0 {
 		return &CheckInRecorder{
 			record:          uint64(recordRaw),
@@ -118,7 +131,7 @@ func (s *CheckInRecorder) SetClock(clock func() time.Time) {
 }
 
 // CheckIn records a new check-in.
-// It returns false if the user has already signed in today.
+// It returns false if the user has already checked in today.
 func (s *CheckInRecorder) CheckIn() bool {
 	now := s.clock().In(s.location)
 	if !s.correctCheckInRecord(now) {
@@ -130,8 +143,8 @@ func (s *CheckInRecorder) CheckIn() bool {
 }
 
 // correctCheckInRecord corrects the check-in record based on the current time.
-// It returns true if the user has already signed in today, false otherwise.
-func (s *CheckInRecorder) correctCheckInRecord(now time.Time) (signed bool) {
+// It returns true if the user has already checked in today, false otherwise.
+func (s *CheckInRecorder) correctCheckInRecord(now time.Time) (checkedIn bool) {
 	if s.record == 0 {
 		// Already cleared, no need to reset.
 		return false
@@ -139,7 +152,7 @@ func (s *CheckInRecorder) correctCheckInRecord(now time.Time) (signed bool) {
 	// Calculate the difference in days between the last check-in time and today's midnight.
 	diffDays := calculateDaysDiff(s.lastCheckInTime, now)
 	if diffDays <= 0 {
-		// Already signed in today.
+		// Already checked in today.
 		return true
 	}
 	if diffDays > 64 {
@@ -197,7 +210,7 @@ func (s *CheckInRecorder) RecordN(n int) []bool {
 	return record
 }
 
-// HasCheckIn checks if the user has signed in on the specified day (0-based index).
+// HasCheckIn checks if the user has checked in on the specified day (0-based index).
 func (s *CheckInRecorder) HasCheckIn(day int) bool {
 	if day < 0 || day >= 64 {
 		return false
@@ -206,8 +219,8 @@ func (s *CheckInRecorder) HasCheckIn(day int) bool {
 	return (s.record & (1 << day)) != 0
 }
 
-// HasSignedToday checks if the user has already signed in today.
-func (s *CheckInRecorder) HasSignedToday() bool {
+// HasCheckedInToday checks if the user has already checked in today.
+func (s *CheckInRecorder) HasCheckedInToday() bool {
 	return s.correctCheckInRecord(s.clock().In(s.location))
 }
 

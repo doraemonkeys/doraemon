@@ -207,18 +207,19 @@ func TestNewCheckInRecorder(t *testing.T) {
 		recordRaw       any
 		lastCheckInTime time.Time
 		expectedRecord  uint64
+		expectedPanic   bool
 	}{
 		{
 			name:            "uint64",
 			recordRaw:       uint64(0b1010),
 			lastCheckInTime: now,
-			expectedRecord:  uint64(0b1010),
+			expectedPanic:   true,
 		},
 		{
 			name:            "uint32",
 			recordRaw:       uint32(0b1100),
 			lastCheckInTime: now,
-			expectedRecord:  uint64(0b1100),
+			expectedPanic:   true,
 		},
 		{
 			name:            "uint16",
@@ -236,25 +237,25 @@ func TestNewCheckInRecorder(t *testing.T) {
 			name:            "int64",
 			recordRaw:       int64(0b1010),
 			lastCheckInTime: now,
-			expectedRecord:  uint64(0b1010),
+			expectedPanic:   true,
 		},
 		{
 			name:            "int64_negative",
 			recordRaw:       int64(-0b1010),
 			lastCheckInTime: now,
-			expectedRecord:  uint64(0xfffffffffffffff6),
+			expectedPanic:   true,
 		},
 		{
 			name:            "int32",
 			recordRaw:       int32(0b1100),
 			lastCheckInTime: now,
-			expectedRecord:  uint64(0b1100),
+			expectedPanic:   true,
 		},
 		{
 			name:            "int32_negative",
 			recordRaw:       int32(-0b1100),
 			lastCheckInTime: now,
-			expectedRecord:  uint64(0b11111111111111111111111111110100),
+			expectedPanic:   true,
 		},
 		{
 			name:            "int16",
@@ -280,10 +281,25 @@ func TestNewCheckInRecorder(t *testing.T) {
 			lastCheckInTime: now,
 			expectedRecord:  uint64(0xff),
 		},
+		{
+			name:            "zero",
+			recordRaw:       int64(0),
+			lastCheckInTime: time.Time{}.In(loc),
+			expectedRecord:  0,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil && !tc.expectedPanic {
+					t.Errorf("Expected no panic for %s, but got one", tc.name)
+				}
+				if r == nil && tc.expectedPanic {
+					t.Errorf("Expected panic for %s, but did not get one", tc.name)
+				}
+			}()
 			recorder := newCheckInRecorderForTest(tc.recordRaw, tc.lastCheckInTime)
 			if recorder.record != tc.expectedRecord {
 				t.Errorf("For %s: Expected record to be %b, got %b", tc.name, tc.expectedRecord, recorder.record)
@@ -317,7 +333,7 @@ func TestNewCheckInRecorder2(t *testing.T) {
 
 	// Test case 2: New recorder with uint64 record
 	now := time.Now()
-	recorder = NewCheckInRecorder[uint64](1, now)
+	recorder = newCheckInRecorder[uint64](1, now)
 	if recorder.record != 1 {
 		t.Errorf("NewCheckInRecorder[uint64]: expected record to be 1, got %d", recorder.record)
 	}
@@ -329,7 +345,7 @@ func TestNewCheckInRecorder2(t *testing.T) {
 	}
 
 	// Test case 3: New recorder with int64 record
-	recorder = NewCheckInRecorder[int64](-1, now)
+	recorder = newCheckInRecorder[int64](-1, now)
 	if recorder.record != 18446744073709551615 {
 		t.Errorf("NewCheckInRecorder[int64]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
@@ -340,15 +356,15 @@ func TestNewCheckInRecorder2(t *testing.T) {
 		t.Errorf("NewCheckInRecorder[int64]: expected location to be %v, got %v", now.Location(), recorder.location)
 	}
 
-	recorder = NewCheckInRecorder[int32](-1, now)
+	recorder = newCheckInRecorder[int32](-1, now)
 	if recorder.record != 4294967295 {
 		t.Errorf("NewCheckInRecorder[int32]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
-	recorder = NewCheckInRecorder[int16](-1, now)
+	recorder = newCheckInRecorder[int16](-1, now)
 	if recorder.record != 65535 {
 		t.Errorf("NewCheckInRecorder[int16]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
-	recorder = NewCheckInRecorder[int8](-1, now)
+	recorder = newCheckInRecorder[int8](-1, now)
 	if recorder.record != 255 {
 		t.Errorf("NewCheckInRecorder[int8]: expected record to be -1 as uint64, got %d", recorder.record)
 	}
@@ -657,27 +673,27 @@ func TestHasSignedToday(t *testing.T) {
 	recorder.SetClock(func() time.Time { return mockTime })
 
 	// Test case 1: first check-in of the day
-	if recorder.HasSignedToday() {
+	if recorder.HasCheckedInToday() {
 		t.Errorf("HasSignedToday: expected false before check-in, got true")
 	}
 	recorder.CheckIn()
-	if !recorder.HasSignedToday() {
+	if !recorder.HasCheckedInToday() {
 		t.Errorf("HasSignedToday: expected true after first check-in, got false")
 	}
 
 	// Test case 2: check-in next day
 	mockTime = mockTime.AddDate(0, 0, 1)
 	recorder.SetClock(func() time.Time { return mockTime })
-	if recorder.HasSignedToday() {
+	if recorder.HasCheckedInToday() {
 		t.Errorf("HasSignedToday: expected false before check-in, got true")
 	}
 	recorder.CheckIn()
-	if !recorder.HasSignedToday() {
+	if !recorder.HasCheckedInToday() {
 		t.Errorf("HasSignedToday: expected true after first check-in, got false")
 	}
 
 	// Test case 3: same day check-in
-	if !recorder.HasSignedToday() {
+	if !recorder.HasCheckedInToday() {
 		t.Errorf("HasSignedToday: expected true after same day check-in, got false")
 	}
 }
@@ -741,10 +757,10 @@ func TestCheckInWithDifferentTimeZones(t *testing.T) {
 	}
 
 	// Check hasSignedToday
-	if !recorderUTC.HasSignedToday() {
+	if !recorderUTC.HasCheckedInToday() {
 		t.Errorf("TestCheckInWithDifferentTimeZones (UTC): Expected HasSignedToday() to be true, got false")
 	}
-	if !recorderPST.HasSignedToday() {
+	if !recorderPST.HasCheckedInToday() {
 		t.Errorf("TestCheckInWithDifferentTimeZones (PST): Expected HasSignedToday() to be true, got false")
 	}
 }
@@ -799,7 +815,7 @@ func TestCheckInRecorder_GetConsecutiveCheckInDays(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewCheckInRecorder(tt.record, tt.lastCheckInTime.In(loc))
+			s := newCheckInRecorder(tt.record, tt.lastCheckInTime.In(loc))
 			s.SetClock(clock)
 			actualDays := s.ConsecutiveCheckInDays()
 			if actualDays != tt.expectedDays {
@@ -880,7 +896,7 @@ func TestCheckInRecorder_DaysToNextMilestone(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewCheckInRecorder(tt.record, tt.lastCheckInTime.In(loc))
+			s := newCheckInRecorder(tt.record, tt.lastCheckInTime.In(loc))
 			s.SetClock(clock)
 			actualDays := s.DaysToNextMilestone(tt.milestone)
 			if actualDays != tt.expectedDays {
@@ -900,7 +916,7 @@ func ExampleCheckInRecorder() {
 	fmt.Println("Record after first check-in:", recorder.Record())
 
 	recorder.CheckIn()
-	fmt.Println("Has signed today:", recorder.HasSignedToday())
+	fmt.Println("Has signed today:", recorder.HasCheckedInToday())
 	fmt.Println("Record after same day check-in:", recorder.Record())
 
 	mockTime := time.Now().AddDate(0, 0, 2)
@@ -927,4 +943,121 @@ func ExampleCheckInRecorder() {
 	// check-in on day 2: true
 	// Raw record: 5
 	// Get record with n =  3 : [true false true]
+}
+
+func TestNewEmptyCheckInRecorder2(t *testing.T) {
+	loc := time.UTC
+	recorder := NewEmptyCheckInRecorder(loc)
+	if recorder.record != 0 {
+		t.Errorf("Expected record to be 0, got %d", recorder.record)
+	}
+	if !recorder.lastCheckInTime.IsZero() {
+		t.Errorf("Expected lastCheckInTime to be zero, got %v", recorder.lastCheckInTime)
+	}
+	if recorder.location != loc {
+		t.Errorf("Expected location to be %v, got %v", loc, recorder.location)
+	}
+}
+
+func TestNewCheckInRecorder3(t *testing.T) {
+	loc := time.UTC
+	now := time.Now().In(loc)
+	tests := []struct {
+		name            string
+		recordRaw       any
+		lastCheckInTime time.Time
+		wantErr         bool
+		expectedRecord  uint64
+	}{
+		{
+			name:            "valid uint64",
+			recordRaw:       uint64(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid uint32",
+			recordRaw:       uint32(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid uint16",
+			recordRaw:       uint16(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid uint8",
+			recordRaw:       uint8(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid int64",
+			recordRaw:       int64(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid int32",
+			recordRaw:       int32(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid int16",
+			recordRaw:       int16(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "valid int8",
+			recordRaw:       int8(0b101),
+			lastCheckInTime: now.Add(-2 * 24 * time.Hour),
+			expectedRecord:  0b101 << 2,
+		},
+		{
+			name:            "lastCheckInTime is zero, but recordRaw is not zero",
+			recordRaw:       uint64(1),
+			lastCheckInTime: time.Time{},
+			wantErr:         true,
+		},
+		{
+			name:            "already checked in today, but today's record is 0",
+			recordRaw:       int64(0),
+			lastCheckInTime: now,
+			wantErr:         true,
+		},
+		{
+			name:            "already checked in today, and today's record is 1",
+			recordRaw:       int64(1),
+			lastCheckInTime: now,
+			expectedRecord:  uint64(1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); (r != nil) != tt.wantErr {
+					t.Errorf("NewCheckInRecorder() recover = %v, wantErr %v", r, tt.wantErr)
+				}
+			}()
+			recorder := newCheckInRecorderForTest(tt.recordRaw, tt.lastCheckInTime)
+			recorder.correctCheckInRecord(recorder.clock().In(recorder.location))
+			if !tt.wantErr {
+				if recorder.record != tt.expectedRecord {
+					t.Errorf("Expected record to be %b, got %b", tt.expectedRecord, recorder.record)
+				}
+				if recorder.lastCheckInTime != tt.lastCheckInTime {
+					t.Errorf("Expected lastCheckInTime to be %v, got %v", tt.lastCheckInTime, recorder.lastCheckInTime)
+				}
+				if recorder.location != tt.lastCheckInTime.Location() {
+					t.Errorf("Expected location to be %v, got %v", tt.lastCheckInTime.Location(), recorder.location)
+				}
+
+			}
+		})
+	}
 }
