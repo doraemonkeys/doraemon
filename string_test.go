@@ -30,6 +30,8 @@ func TestSplitBySpaceLimit2(t *testing.T) {
 			spaceLimit: 0, want: []string{"Access", "通用", "SuperSpeed", "USB", "集线器"}},
 		{name: "7", line: "\r\nAccess    通用 SuperSpeed USB 集线器\n",
 			spaceLimit: 0, want: []string{"Access", "通用", "SuperSpeed", "USB", "集线器"}},
+		{name: "8", line: "      ",
+			spaceLimit: 0, want: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -37,7 +39,7 @@ func TestSplitBySpaceLimit2(t *testing.T) {
 				t.Errorf("case %s SplitBySpaceLimit2() = %v, want %v", tt.name, got, tt.want)
 			}
 			if got := SplitBySpaceLimit(tt.line, tt.spaceLimit); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("case %s SplitBySpaceLimit() = %v, want %v", tt.name, got, tt.want)
+				t.Errorf("case %s SplitBySpaceLimit() = %#v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

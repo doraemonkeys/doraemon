@@ -70,9 +70,24 @@ func SplitBySpaceLimit(line string, spaceLimit int) []string {
 	return values
 }
 
+// SplitBySpaceLimit2 splits a string by a minimum number of consecutive spaces.
+//
+// It takes a string `line` and an integer `spaceLimit` as input.
+// It returns a slice of strings, where each string is a part of the original
+// string that was separated by at least `spaceLimit + 1` spaces.  Leading and
+// trailing spaces on each split part are trimmed.  Empty strings resulting from
+// the split are not included in the output, unless all resulting splits are empty.
+//
+// Example:
+//
+//	SplitBySpaceLimit2("  foo   bar    baz", 3) == ["foo   bar", "baz"]
+//	SplitBySpaceLimit2("foo       bar", 3)  == ["foo", "bar"]
+//	SplitBySpaceLimit2("   foo   ", 2) == ["foo"]
+//	SplitBySpaceLimit2("      ", 2) == []
+//	SplitBySpaceLimit2("foo", 2) == ["foo"]
 func SplitBySpaceLimit2(line string, spaceLimit int) []string {
 	var minSpaceStr = strings.Repeat(" ", spaceLimit+1)
-	var values = make([]string, 0, 10)
+	var values []string
 	for {
 		before, after, found := strings.Cut(line, minSpaceStr)
 		if !found {
@@ -123,6 +138,45 @@ func SplitBySpaceLimit2(line string, spaceLimit int) []string {
 //		["F:", "", "1", "4096"],
 //
 // ]
+
+// ScanFields parses a set of text lines (lines) and extracts the field names (fields) from the first line.
+// It then parses the remaining lines as records, where each record is a collection of field values.
+// This function handles a limited number of space characters to separate fields in the records.
+//
+// Parameters:
+//   - lines: A slice of strings containing the text lines to be parsed.
+//   - fieldSpaceLimit: An integer specifying the minimum number of spaces between fields to consider them separate.
+//     If 0, any number of spaces is used to separate fields.
+//   - recordSpaceLimit: An integer specifying the minimum number of spaces between values in a record to consider them separate.
+//     If 0, any number of spaces is used to separate values.
+//   - fieldKeyWords:  A map used for fine-grained field association.  Keys are field names,
+//     and values are functions that take a string (a potential field value) and return true if
+//     the value matches that field, helping disambiguate in cases of misalignment.
+//
+// It is guaranteed that the first line represents field names, and each subsequent line is a valid record.
+//
+// Returns:
+//   - fields: A slice of strings representing the names of the fields.
+//   - records: A slice of string slices, where each inner slice represents a record and contains the values for each field.
+//   - err: An error object, which is non-nil if an error occurs during parsing (e.g., empty input, no fields found, or an unsupported line format).
+//
+// Example:
+//
+//	Input lines:
+//	  Name Access  Availability  BlockSize
+//	  C:     3       0           4096
+//	  D:     3                  4096
+//	  E:     3       1           4096
+//	  F:            1           4096
+//
+//	Output:
+//	  fields = ["Name", "Access", "Availability", "BlockSize"]
+//	  records = [
+//	    ["C:", "3", "0", "4096"],
+//	    ["D:", "3", "", "4096"],
+//	    ["E:", "3", "1", "4096"],
+//	    ["F:", "", "1", "4096"],
+//	  ]
 func ScanFields(
 	lines []string,
 	fieldSpaceLimit int,
@@ -149,48 +203,67 @@ func ScanFields(
 	if len(fields) == 0 {
 		return nil, nil, fmt.Errorf("empty fields")
 	}
+
+	// Create a map to store the index (position) of each field.
 	var fieldsIndexMap = make(map[string]int, len(fields))
 	scanCount := 0
+	// Calculate and store the index of each field, considering potential Unicode characters (e.g., Chinese).
 	for _, field := range fields {
 		asciiIndex := scanCount + strings.Index(lines[0][scanCount:], field)
 		scanCount = asciiIndex + len(field)
 		runeLen := len([]rune(lines[0][:asciiIndex]))
 		// 两个汉字大约多占用一个空格
+		// Estimate additional space occupied by wide characters (like Chinese).
 		fieldsIndexMap[field] = runeLen + (asciiIndex-runeLen)/4
 	}
+
+	// Iterate through the remaining lines to parse records.
 	for _, line := range lines[1:] {
 		var record = make([]string, len(fields))
 		var values []string
+
+		// Split the record line into values based on recordSpaceLimit.
 		if recordSpaceLimit == 0 {
 			values = strings.Fields(line)
 		} else {
 			values = SplitBySpaceLimit2(line, recordSpaceLimit)
 		}
-		// easy case
+
+		// Easy case: If the number of values matches the number of fields, directly copy the values.
 		if len(values) == len(fields) {
 			copy(record, values)
 			records = append(records, record)
 			continue
 		}
 
-		holesWithNothingI := 0
+		// Complex case: Handle lines where the number of values doesn't match the number of fields (due to missing values).
+		holesWithNothingI := 0 // Keep track of the field index where a value might be missing.
 		scanCount = 0
 		for valueI, value := range values {
+			// Find the character position of the current value in the line.
 			valueAsciiIndex := scanCount + strings.Index(line[scanCount:], value)
 			scanCount = valueAsciiIndex + len(value)
+
+			// Calculate the rune index and adjust for potential wide characters.
 			valueRuneIndex := len([]rune(line[:valueAsciiIndex]))
 			valueCalibration := (valueAsciiIndex - valueRuneIndex) / 4
-			valueIndex := valueRuneIndex + valueCalibration //修正后的长度索引
-			// valueCenterIndex := valueAsciiIndex + len(value)/2
+			valueIndex := valueRuneIndex + valueCalibration // 修正后的长度索引 Corrected index.
+
+			// Calculate the index for the tail of the current value
 			valueTailAsciiIndex := valueAsciiIndex + len(value)
 			valueTailRuneIndex := len([]rune(line[:valueTailAsciiIndex]))
 			valueTailCalibration := (valueTailAsciiIndex - valueTailRuneIndex) / 4
 			valueTailIndex := valueTailRuneIndex + valueTailCalibration
+
+			// Calculate a center index of the value. It used for march
 			valueCenterIndex := valueIndex + (valueTailIndex-valueIndex)/2
 
+			// Determine the correct field index (holeIndex) for the current value.
 			holeIndex := marchValueIndex(value, fieldKeyWords, fieldsIndexMap,
 				fields, holesWithNothingI, valueCenterIndex)
-			holesWithNothingI = holeIndex + 1
+			holesWithNothingI = holeIndex + 1 // Update the starting index for the next value.
+
+			// If all the remain value can not match the field, it is an unsupported line
 			if holesWithNothingI == len(fields) && valueI != len(values)-1 {
 				return nil, nil, fmt.Errorf("unsupported line: %s", line)
 			}
@@ -199,9 +272,12 @@ func ScanFields(
 		}
 		records = append(records, record)
 	}
+
 	return fields, records, nil
 }
 
+// marchValueIndex determines the correct field index for a given value, considering potential misalignments
+// and using field keywords for disambiguation.
 func marchValueIndex(
 	value string,
 	fieldKeyWords map[string]func(string) bool,
@@ -209,69 +285,83 @@ func marchValueIndex(
 	fields []string,
 	holesWithNothingI int,
 	valueCenterIndex int) (holeIndex int) {
+
+	// Handle the first field (or single-field case).
 	if holesWithNothingI == 0 {
 		if len(fields) == 1 {
 			return holesWithNothingI
 		}
 		if valueCenterIndex < fieldsIndexMap[fields[1]] {
-			return holesWithNothingI
+			return holesWithNothingI // Value belongs to the first field.
 		}
-		holesWithNothingI = 1
+		holesWithNothingI = 1 // Otherwise, start checking from the second field.
 	}
+
+	// Iterate through the fields to find the best match.
 	for i := holesWithNothingI; i < len(fields)-1; i++ {
+		// Check if the value's center index falls within the range of the current field.
 		if valueCenterIndex < fieldsIndexMap[fields[i+1]] {
-			// return i
+			// Use field keywords for more accurate matching, if available.
 			filter, exist := fieldKeyWords[fields[i]]
 			filter_l, exist_l := fieldKeyWords[fields[i-1]]
 			filter_r, exist_r := fieldKeyWords[fields[i+1]]
+
+			// Check if the value matches the current, previous, or next field based on keywords.
 			if exist && filter(value) {
-				// fmt.Println("filter:", fields[i], value)
 				return i
 			}
 			if exist_l && filter_l(value) {
-				// fmt.Println("filter_l:", fields[i-1], value)
 				return i - 1
 			}
 			if exist_r && filter_r(value) {
-				// fmt.Println("filter_r:", fields[i+1], value)
 				return i + 1
 			}
-			return i
+			return i // Return the current field index if no keywords match.
 		}
 	}
 	// 默认为最后一个值对应最后一个字段
 	return len(fields) - 1
 }
 
+// ReadLines reads all lines from the given io.Reader and returns them as a slice of byte slices.
+// Each line has leading/trailing whitespace removed.
 func ReadLines(reader io.Reader) (lines [][]byte, err error) {
 	buf := bytes.NewBuffer(nil)
 	_, err = io.Copy(buf, reader)
 	if err != nil {
 		return nil, err
 	}
-	return bytes.Split(buf.Bytes(), []byte("\n")), nil
+	lines = bytes.Split(buf.Bytes(), []byte("\n"))
+	for i := 0; i < len(lines); i++ {
+		lines[i] = bytes.TrimSpace(lines[i])
+	}
+	return lines, nil
 }
 
-// ReadTrimmedLines 从给定的 io.Reader 中读取内容，并按行分割成字节切片。
-// 开头和结尾的空白行将被去除。
-// 返回值 lines 是一个二维字节切片，每个元素代表一行的内容。
+// ReadTrimmedLines reads content from the given io.Reader, splits it into lines,
+// and returns a slice of byte slices.  Leading and trailing empty lines (after whitespace trimming) are removed.
 func ReadTrimmedLines(reader io.Reader) (lines [][]byte, err error) {
 	lines, err = ReadLines(reader)
 	if err != nil {
 		return nil, err
 	}
+
+	// Remove leading empty lines.
 	for i := 0; i < len(lines); i++ {
 		if len(bytes.TrimSpace(lines[i])) != 0 {
 			lines = lines[i:]
 			break
 		}
 	}
+
+	// Remove trailing empty lines.
 	for i := len(lines) - 1; i >= 0; i-- {
 		if len(bytes.TrimSpace(lines[i])) != 0 {
 			lines = lines[:i+1]
 			break
 		}
 	}
+
 	return lines, nil
 }
 
