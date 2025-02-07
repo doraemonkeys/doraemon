@@ -259,7 +259,7 @@ func ScanFields(
 			valueCenterIndex := valueIndex + (valueTailIndex-valueIndex)/2
 
 			// Determine the correct field index (holeIndex) for the current value.
-			holeIndex := marchValueIndex(value, fieldKeyWords, fieldsIndexMap,
+			holeIndex := matchValueIndex(value, fieldKeyWords, fieldsIndexMap,
 				fields, holesWithNothingI, valueCenterIndex)
 			holesWithNothingI = holeIndex + 1 // Update the starting index for the next value.
 
@@ -276,9 +276,9 @@ func ScanFields(
 	return fields, records, nil
 }
 
-// marchValueIndex determines the correct field index for a given value, considering potential misalignments
+// matchValueIndex determines the correct field index for a given value, considering potential misalignments
 // and using field keywords for disambiguation.
-func marchValueIndex(
+func matchValueIndex(
 	value string,
 	fieldKeyWords map[string]func(string) bool,
 	fieldsIndexMap map[string]int,
