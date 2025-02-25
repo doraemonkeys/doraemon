@@ -788,3 +788,14 @@ func WriteFile2(filePath string, data io.Reader, perm fs.FileMode) error {
 	}
 	return f.Close()
 }
+
+// WriteFilePreservePerms writes data to a file named name, preserving existing permissions if the file exists.
+// If the file does not exist, it is created with permissions 0644 (rw-r--r--).
+func WriteFilePreservePerms(name string, data []byte) error {
+	perm := fs.FileMode(0644)
+	f, err := os.Stat(name)
+	if err == nil {
+		perm = f.Mode()
+	}
+	return os.WriteFile(name, data, perm)
+}
