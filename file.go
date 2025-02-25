@@ -240,7 +240,10 @@ func CopyFile(src, dst string, overwrite bool) error {
 		return fmt.Errorf("copy file error: %v", err)
 	}
 	dstFile.Close()
-	srcInfo, _ := srcFile.Stat()
+	srcInfo, err := srcFile.Stat()
+	if err != nil {
+		return nil
+	}
 	os.Chmod(target, srcInfo.Mode())
 	os.Chtimes(target, time.Now(), srcInfo.ModTime())
 	return nil
@@ -253,6 +256,15 @@ func CopyFile(src, dst string, overwrite bool) error {
 // dst必须是一个存在的文件夹，否则返回错误。
 // scr为的绝对或相对路径。
 func MoveFileOrDir(src, dst string, overwrite bool) error {
+	if runtime.GOOS == "windows" {
+		isSame, err := isSameDiskWindows(src, dst)
+		if err != nil {
+			isSame = false
+		}
+		if !isSame {
+			return rename(src, dst, overwrite)
+		}
+	}
 	dst = strings.TrimSuffix(dst, `\`)
 	dst = strings.TrimSuffix(dst, `/`)
 	//判断src是否存在
@@ -274,6 +286,51 @@ func MoveFileOrDir(src, dst string, overwrite bool) error {
 		return err
 	}
 	return nil
+}
+
+func isSameDiskWindows(path1, path2 string) (bool, error) {
+	var winPath = func(path string) bool {
+		return len(path) >= 2 && path[1] == ':'
+	}
+	if winPath(path1) && winPath(path2) {
+		return strings.EqualFold(path1[:2], path2[:2]), nil
+	}
+	path1 = filepath.Clean(path1)
+	path2 = filepath.Clean(path2)
+	if strings.EqualFold(path1, path2) {
+		return true, nil
+	}
+	if strings.HasPrefix(path1, `\\`) && strings.HasPrefix(path2, `\\`) {
+		return true, nil
+	}
+	if strings.HasPrefix(path1, `~`) && strings.HasPrefix(path2, `~`) {
+		return true, nil
+	}
+	if strings.HasPrefix(path1, `.`) && strings.HasPrefix(path2, `.`) {
+		return true, nil
+	}
+	curPath, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	if HasAnyPrefix(path1, ".", "\\") {
+		path1 = curPath
+	}
+	if HasAnyPrefix(path2, ".", "\\") {
+		path2 = curPath
+	}
+	if winPath(path1) && winPath(path2) {
+		return isSameDiskWindows(path1, path2)
+	}
+	return false, nil
+}
+
+func rename(src, dst string, overwrite bool) error {
+	err := CopyFileOrDir(src, dst, overwrite)
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(src)
 }
 
 // 复制文件或文件夹
@@ -309,6 +366,9 @@ func CopyDir(src, dst string, overwrite bool) error {
 	src = strings.TrimSuffix(src, `/`)
 	// dst加上原文件夹名字
 	dst = filepath.Join(dst, filepath.Base(src)) //dst更新为目标文件夹
+	if !overwrite {
+		return os.CopyFS(dst, os.DirFS(src))
+	}
 	if !FileOrDirIsExist(dst) {
 		err := os.MkdirAll(dst, 0666)
 		if err != nil {

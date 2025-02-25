@@ -382,3 +382,12 @@ func GenRandomAsciiString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	return GenRandomString(charset, length)
 }
+
+func HasAnyPrefix(s string, prefixs ...string) bool {
+	for _, prefix := range prefixs {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+	return false
+}

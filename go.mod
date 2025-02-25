@@ -1,6 +1,6 @@
 module github.com/doraemonkeys/doraemon
 
-go 1.22.0
+go 1.24
 
 require (
 	github.com/arduino/go-win32-utils v1.0.0
