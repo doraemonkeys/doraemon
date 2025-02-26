@@ -9,7 +9,7 @@ import (
 
 type SimpleKV struct {
 	data     map[string]string
-	dataLock *sync.RWMutex
+	dataLock sync.RWMutex
 	dbPath   string
 }
 
@@ -21,7 +21,7 @@ func NewSimpleKV(dbPath string) (*SimpleKV, error) {
 	defer f.Close()
 	kv := &SimpleKV{
 		data:     make(map[string]string),
-		dataLock: &sync.RWMutex{},
+		dataLock: sync.RWMutex{},
 		dbPath:   dbPath,
 	}
 	err = json.NewDecoder(f).Decode(&kv.data)
