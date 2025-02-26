@@ -32,7 +32,7 @@ func NewSimpleKV(dbPath string) (*SimpleKV, error) {
 }
 
 func (kv *SimpleKV) save() error {
-	jsonData, err := json.Marshal(kv.data)
+	jsonData, err := json.MarshalIndent(kv.data, "", "    ")
 	if err != nil {
 		return err
 	}
