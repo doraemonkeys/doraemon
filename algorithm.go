@@ -79,7 +79,7 @@ func NewEmptyCheckInRecorder(location *time.Location) *CheckInRecorder {
 
 // Integer is a type constraint for integer types.
 type Integer interface {
-	~uint64 | ~uint32 | ~uint16 | ~uint8 | ~int64 | ~int32 | ~int16 | ~int8
+	uint64 | uint32 | uint16 | uint8 | int64 | int32 | int16 | int8
 }
 
 // newCheckInRecorder creates a new CheckInRecorder with existing record and last check-in time.
@@ -204,7 +204,7 @@ func (s *CheckInRecorder) RecordN(n int) []bool {
 	}
 	s.correctCheckInRecord(s.clock().In(s.location))
 	record := make([]bool, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		record[i] = (s.record & (1 << i)) != 0
 	}
 	return record
@@ -228,7 +228,7 @@ func (s *CheckInRecorder) HasCheckedInToday() bool {
 func (s *CheckInRecorder) ConsecutiveCheckInDays() int {
 	s.correctCheckInRecord(s.clock().In(s.location))
 	consecutiveDays := 0
-	for i := 0; i < 64; i++ {
+	for i := range 64 {
 		if s.record&(1<<i) == 0 {
 			break
 		}

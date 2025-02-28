@@ -332,7 +332,7 @@ func ReadLines(reader io.Reader) (lines [][]byte, err error) {
 		return nil, err
 	}
 	lines = bytes.Split(buf.Bytes(), []byte("\n"))
-	for i := 0; i < len(lines); i++ {
+	for i := range len(lines) {
 		lines[i] = bytes.TrimSpace(lines[i])
 	}
 	return lines, nil
@@ -347,7 +347,7 @@ func ReadTrimmedLines(reader io.Reader) (lines [][]byte, err error) {
 	}
 
 	// Remove leading empty lines.
-	for i := 0; i < len(lines); i++ {
+	for i := range len(lines) {
 		if len(bytes.TrimSpace(lines[i])) != 0 {
 			lines = lines[i:]
 			break
@@ -369,7 +369,7 @@ func GenRandomString(charset string, length int) string {
 	strB := strings.Builder{}
 	strB.Grow(length)
 	var err error
-	for i := 0; i < length; i++ {
+	for range length {
 		if err = strB.WriteByte(charset[rand.IntN(len(charset))]); err != nil {
 			panic(err)
 		}

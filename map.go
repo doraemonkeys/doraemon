@@ -30,7 +30,7 @@ func NewMap[K comparable, V any](shardCount int, calcFunc func(key K) int) *Shar
 	}
 	locks := make([]sync.RWMutex, shardCount)
 	mp := make([]map[K]V, shardCount)
-	for i := 0; i < shardCount; i++ {
+	for i := range shardCount {
 		mp[i] = make(map[K]V)
 	}
 	return &ShardedMap[K, V]{locks: locks, mp: mp, shardFunc: calcFunc}

@@ -91,7 +91,7 @@ func (rl *SlidingWindowRateLimiter) Allow() bool {
 			bucketsToAdvance = rl.subWindowNum
 		}
 		// Move to the next sub-window and clear the current sub-window count
-		for i := 0; i < bucketsToAdvance; i++ {
+		for range bucketsToAdvance {
 			rl.currentBucket = (rl.currentBucket + 1) % rl.subWindowNum
 			rl.buckets[rl.currentBucket] = 0
 		}

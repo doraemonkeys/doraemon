@@ -32,7 +32,7 @@ func findStructEmptyStringField(v reflect.Value, ignores map[string]bool) string
 		return findStructEmptyStringField(v.Elem(), ignores)
 	}
 	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		if ignores != nil && ignores[t.Field(i).Name] {
 			continue
 		}
@@ -72,7 +72,7 @@ func createStructEmptyInstance(structType reflect.Type, created map[reflect.Type
 	if value.Kind() != reflect.Struct {
 		panic("createStructEmptyInstance: value is not a struct")
 	}
-	for i := 0; i < value.NumField(); i++ {
+	for i := range value.NumField() {
 		field := value.Field(i)
 		if !field.CanSet() {
 			continue

@@ -69,7 +69,7 @@ func AssertEqual[T comparable](t1, t2 T, tn ...T) {
 	if t1 != t2 {
 		panic(fmt.Sprintf("%v != %v", t1, t2))
 	}
-	for i := 0; i < len(tn); i++ {
+	for i := range tn {
 		if t1 != tn[i] {
 			panic(fmt.Sprintf("%v != %v", t1, tn[i]))
 		}
