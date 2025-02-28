@@ -1,6 +1,7 @@
 package doraemon
 
 import (
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -42,7 +43,7 @@ func (wr *WeightedRandom[T]) RemovePrize(item T) {
 	defer wr.prizesMu.Unlock()
 	for i, prize := range wr.prizes {
 		if prize.Item == item {
-			wr.prizes = append(wr.prizes[:i], wr.prizes[i+1:]...)
+			wr.prizes = slices.Delete(wr.prizes, i, i+1)
 			wr.totalWeight.Add(int64(-prize.Weight))
 			break
 		}
