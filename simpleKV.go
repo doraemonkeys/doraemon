@@ -85,3 +85,13 @@ func (kv *SimpleKV) SetIfNotExist(key, value string) (bool, error) {
 	}
 	return true, nil
 }
+
+func (kv *SimpleKV) Range(f func(key, value string) bool) {
+	kv.dataLock.RLock()
+	defer kv.dataLock.RUnlock()
+	for k, v := range kv.data {
+		if !f(k, v) {
+			break
+		}
+	}
+}

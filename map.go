@@ -114,12 +114,15 @@ func (m *ShardedMap[K, V]) Remove(key K) (V, bool) {
 	return value, ok
 }
 
-// Range iterates over the map and calls the given function for each key-value pair.
-func (m *ShardedMap[K, V]) Range(f func(key K, value V)) {
+// Range calls f sequentially for each key and value present in the map.
+// If f returns false, range stops the iteration.
+func (m *ShardedMap[K, V]) Range(f func(key K, value V) bool) {
 	for i, shard := range m.mp {
 		m.locks[i].RLock()
 		for key, value := range shard {
-			f(key, value)
+			if !f(key, value) {
+				break
+			}
 		}
 		m.locks[i].RUnlock()
 	}

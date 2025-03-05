@@ -169,9 +169,10 @@ func TestRange(t *testing.T) {
 
 	var count int
 	var sum int
-	m.Range(func(key string, value int) {
+	m.Range(func(key string, value int) bool {
 		count++
 		sum += value
+		return true
 	})
 
 	assert.Equal(t, 2, count)
@@ -265,9 +266,10 @@ func TestConcurrencyWithRange(t *testing.T) {
 	rangeWg.Add(1)
 	go func() {
 		defer rangeWg.Done()
-		m.Range(func(key int, value int) {
+		m.Range(func(key int, value int) bool {
 			expectedValue := key * 2
 			assert.Equal(t, expectedValue, value, fmt.Sprintf("Unexpected value for key %d", key))
+			return true
 		})
 	}()
 	rangeWg.Wait()
@@ -416,16 +418,43 @@ func TestRange2(t *testing.T) {
 	}
 
 	count := 0
-	sm.Range(func(key string, value int) {
+	sm.Range(func(key string, value int) bool {
 		count++
 		if expected[key] != value {
 			t.Errorf("Expected %d for key %s, got %d", expected[key], key, value)
 		}
+		return true
 	})
 
 	if count != len(expected) {
 		t.Errorf("Expected %d iterations, got %d", len(expected), count)
 	}
+}
+
+func TestIterate(t *testing.T) {
+	sm := NewMap[string, int](4, nil)
+	expected := map[string]int{
+		"key1": 100,
+		"key2": 200,
+		"key3": 300,
+	}
+
+	for k, v := range expected {
+		sm.Set(k, v)
+	}
+
+	count := 0
+	for k, v := range sm.Range {
+		count++
+		if expected[k] != v {
+			t.Errorf("Expected %d for key %s, got %d", expected[k], k, v)
+		}
+	}
+
+	if count != len(expected) {
+		t.Errorf("Expected %d iterations, got %d", len(expected), count)
+	}
+
 }
 
 func TestLen2(t *testing.T) {
@@ -722,8 +751,9 @@ func BenchmarkShardedMapRange(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			m.Range(func(key string, value int) {
+			m.Range(func(key string, value int) bool {
 				_ = fmt.Sprint(key, value)
+				return true
 			})
 		}
 	})
