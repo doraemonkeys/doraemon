@@ -2,9 +2,38 @@ package doraemon
 
 import (
 	"fmt"
+	"hash"
 	"hash/fnv"
 	"sync"
+	"unsafe"
 )
+
+func numHash[
+	K ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+		~float32 | ~float64](key K, h hash.Hash32) uint32 {
+	_, _ = h.Write(unsafe.Slice((*byte)(unsafe.Pointer(&key)), unsafe.Sizeof(key)))
+	return h.Sum32()
+}
+
+func stringHash(key string, h hash.Hash32) uint32 {
+	_, _ = h.Write([]byte(key))
+	return h.Sum32()
+}
+
+func boolHash(key bool, h hash.Hash32) uint32 {
+	if key {
+		_, _ = h.Write([]byte{1})
+	} else {
+		_, _ = h.Write([]byte{0})
+	}
+	return h.Sum32()
+}
+
+func defaultHash[K comparable](key K, h hash.Hash32) uint32 {
+	_, _ = fmt.Fprint(h, key)
+	return h.Sum32()
+}
 
 // ShardedMap is a concurrent map sharded across multiple locks.
 type ShardedMap[K comparable, V any] struct {
@@ -13,12 +42,44 @@ type ShardedMap[K comparable, V any] struct {
 	shardFunc func(key K) int // Function to determine shard index for a key
 }
 
-// DefaultCalc returns a default sharding function using FNV-1a hash.
-func DefaultCalc[K comparable](shardCount int) func(key K) int {
+// DefaultHashCalc returns a default sharding function using FNV-1a hash.
+func DefaultHashCalc[K comparable](shardCount int) func(key K) int {
 	return func(key K) int {
-		h := fnv.New32a()
-		_, _ = fmt.Fprint(h, key)
-		return int(h.Sum32() % uint32(shardCount))
+		var h uint32
+		switch k := any(key).(type) {
+		case int:
+			h = numHash(k, fnv.New32a())
+		case int8:
+			h = numHash(k, fnv.New32a())
+		case int16:
+			h = numHash(k, fnv.New32a())
+		case int32:
+			h = numHash(k, fnv.New32a())
+		case int64:
+			h = numHash(k, fnv.New32a())
+		case uint:
+			h = numHash(k, fnv.New32a())
+		case uint8:
+			h = numHash(k, fnv.New32a())
+		case uint16:
+			h = numHash(k, fnv.New32a())
+		case uint32:
+			h = numHash(k, fnv.New32a())
+		case uint64:
+			h = numHash(k, fnv.New32a())
+		case float32:
+			h = numHash(k, fnv.New32a())
+		case float64:
+			h = numHash(k, fnv.New32a())
+		case string:
+			h = stringHash(k, fnv.New32a())
+		case bool:
+			h = boolHash(k, fnv.New32a())
+		default:
+			h = defaultHash(k, fnv.New32a())
+		}
+		fmt.Println("h", h)
+		return int(h % uint32(shardCount))
 	}
 }
 
@@ -26,7 +87,7 @@ func DefaultCalc[K comparable](shardCount int) func(key K) int {
 // If calcFunc is nil, it uses DefaultCalc.
 func NewMap[K comparable, V any](shardCount int, calcFunc func(key K) int) *ShardedMap[K, V] {
 	if calcFunc == nil {
-		calcFunc = DefaultCalc[K](shardCount)
+		calcFunc = DefaultHashCalc[K](shardCount)
 	}
 	locks := make([]sync.RWMutex, shardCount)
 	mp := make([]map[K]V, shardCount)
@@ -142,7 +203,7 @@ func (m *ShardedMap[K, V]) Shards() int {
 	return len(m.locks)
 }
 
-// Shard returns the shard index for a given key.
-func (m *ShardedMap[K, V]) Shard(key K) int {
+// ShardIndex returns the shard index for a given key.
+func (m *ShardedMap[K, V]) ShardIndex(key K) int {
 	return m.shardFunc(key)
 }

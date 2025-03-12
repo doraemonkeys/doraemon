@@ -207,11 +207,11 @@ func TestShard(t *testing.T) {
 	//  It can be any of the shard, so we cannot check the exact number of shard.
 	// Just check shard index is within the valid range
 
-	assert.True(t, m.Shard("key1") >= 0)
-	assert.True(t, m.Shard("key1") < m.Shards())
+	assert.True(t, m.ShardIndex("key1") >= 0)
+	assert.True(t, m.ShardIndex("key1") < m.Shards())
 
-	assert.True(t, m.Shard("key2") >= 0)
-	assert.True(t, m.Shard("key2") < m.Shards())
+	assert.True(t, m.ShardIndex("key2") >= 0)
+	assert.True(t, m.ShardIndex("key2") < m.Shards())
 }
 
 func TestConcurrency(t *testing.T) {
@@ -475,8 +475,8 @@ func TestLen2(t *testing.T) {
 func TestShard2(t *testing.T) {
 	sm := NewMap[string, int](4, nil)
 
-	shard1 := sm.Shard("key1")
-	shard2 := sm.Shard("key2")
+	shard1 := sm.ShardIndex("key1")
+	shard2 := sm.ShardIndex("key2")
 
 	if shard1 == shard2 {
 		t.Error("Expected different shards for different keys")
@@ -573,8 +573,8 @@ func TestCustomShardingFunction(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		sm.Set(i, fmt.Sprintf("value%d", i))
-		if sm.Shard(i) != i%4 {
-			t.Errorf("Expected shard %d for key %d, got %d", i%4, i, sm.Shard(i))
+		if sm.ShardIndex(i) != i%4 {
+			t.Errorf("Expected shard %d for key %d, got %d", i%4, i, sm.ShardIndex(i))
 		}
 	}
 }
