@@ -78,7 +78,6 @@ func DefaultHashCalc[K comparable](shardCount int) func(key K) int {
 		default:
 			h = defaultHash(k, fnv.New32a())
 		}
-		fmt.Println("h", h)
 		return int(h % uint32(shardCount))
 	}
 }
