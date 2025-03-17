@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash"
 	"hash/fnv"
+	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -12,7 +13,9 @@ func numHash[
 	K ~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
 		~float32 | ~float64](key K, h hash.Hash32) uint32 {
-	_, _ = h.Write(unsafe.Slice((*byte)(unsafe.Pointer(&key)), unsafe.Sizeof(key)))
+	ptr := &key
+	_, _ = h.Write(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), unsafe.Sizeof(key)))
+	runtime.KeepAlive(ptr)
 	return h.Sum32()
 }
 
