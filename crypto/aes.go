@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 )
 
 type AESCBC struct {
@@ -41,13 +42,19 @@ func (c AESCBC) Encrypt(data []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func (c AESCBC) Decrypt(data []byte) ([]byte, error) {
+func (c AESCBC) Decrypt(data []byte) (plaintext []byte, err error) {
 	if len(data) < c.BlockSize() {
 		return nil, errors.New("data is too short")
 	}
 	if len(data)%c.BlockSize() != 0 {
 		return nil, errors.New("data is not a multiple of the block size")
 	}
+	defer func() {
+		if e := recover(); e != nil {
+			plaintext = nil
+			err = fmt.Errorf("decrypt failed: %v", e)
+		}
+	}()
 	iv := data[:c.BlockSize()]
 	ciphertext := data[c.BlockSize():]
 	mode := cipher.NewCBCDecrypter(c.Block, iv)
@@ -55,6 +62,7 @@ func (c AESCBC) Decrypt(data []byte) ([]byte, error) {
 	return PKCS7UnPadding(ciphertext, c.BlockSize())
 }
 
+// AESCBC2 puts iv at the end of the ciphertext
 type AESCBC2 struct {
 	cipher.Block
 	key []byte
@@ -88,13 +96,19 @@ func (c AESCBC2) Encrypt(data []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func (c AESCBC2) Decrypt(data []byte) ([]byte, error) {
+func (c AESCBC2) Decrypt(data []byte) (plaintext []byte, err error) {
 	if len(data) < c.BlockSize() {
 		return nil, errors.New("data is too short")
 	}
 	if len(data)%c.BlockSize() != 0 {
 		return nil, errors.New("data is not a multiple of the block size")
 	}
+	defer func() {
+		if e := recover(); e != nil {
+			plaintext = nil
+			err = fmt.Errorf("decrypt failed: %v", e)
+		}
+	}()
 	iv := data[len(data)-c.BlockSize():]
 	ciphertext := data[:len(data)-c.BlockSize()]
 	mode := cipher.NewCBCDecrypter(c.Block, iv)
