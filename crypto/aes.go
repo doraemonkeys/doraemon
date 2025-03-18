@@ -58,6 +58,7 @@ func (c AESCBC) Decrypt(data []byte) (plaintext []byte, err error) {
 	iv := data[:c.BlockSize()]
 	ciphertext := data[c.BlockSize():]
 	mode := cipher.NewCBCDecrypter(c.Block, iv)
+	// dst and src must overlap entirely or not at all.
 	mode.CryptBlocks(ciphertext, ciphertext)
 	return PKCS7UnPadding(ciphertext, c.BlockSize())
 }
