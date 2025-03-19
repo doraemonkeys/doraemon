@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -144,32 +145,51 @@ func NewAESGCMFromHex(hexKey string) (AESGCM, error) {
 }
 
 func (c AESGCM) Encrypt(data []byte) ([]byte, error) {
+	return c.encryptAuth(data)
+}
+
+func (c AESGCM) EncryptAuth(data []byte, additionalData ...[]byte) ([]byte, error) {
+	return c.encryptAuth(data, additionalData...)
+}
+
+func (c AESGCM) encryptAuth(data []byte, additionalData ...[]byte) ([]byte, error) {
 	nonce := make([]byte, c.AEAD.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
-	ciphertext := c.AEAD.Seal(nonce, nonce, data, nil)
+	additional := bytes.Join(additionalData, nil)
+	ciphertext := c.AEAD.Seal(nonce, nonce, data, additional)
 	return ciphertext, nil
 }
 
-// EncryptWithNonce encrypts data with a nonce, the nonce is the first part of the ciphertext.
-func (c AESGCM) EncryptWithNonce(data []byte) ([]byte, error) {
+// EncryptWithNonce encrypts data with a nonce, the nonce is the first part of the plaintext.
+func (c AESGCM) EncryptWithNonce(data []byte, additionalData ...[]byte) ([]byte, error) {
 	if len(data) < c.AEAD.NonceSize() {
 		return nil, errors.New("data is too short")
 	}
 	nonce := data[:c.AEAD.NonceSize()]
-	ciphertext := c.AEAD.Seal(nonce, nonce, data[c.AEAD.NonceSize():], nil)
+	ciphertext := c.AEAD.Seal(nonce, nonce, data[c.AEAD.NonceSize():], bytes.Join(additionalData, nil))
 	return ciphertext, nil
 }
 
 func (c AESGCM) Decrypt(data []byte) ([]byte, error) {
+	return c.decryptAuth(data)
+}
+
+func (c AESGCM) DecryptAuth(data []byte, additionalData ...[]byte) ([]byte, error) {
+	return c.decryptAuth(data, additionalData...)
+}
+
+func (c AESGCM) decryptAuth(data []byte, additionalData ...[]byte) ([]byte, error) {
 	nonceSize := c.AEAD.NonceSize()
 	if len(data) < nonceSize {
 		return nil, errors.New("ciphertext too short")
 	}
 
+	additional := bytes.Join(additionalData, nil)
+
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := c.AEAD.Open(ciphertext[:0], nonce, ciphertext, nil)
+	plaintext, err := c.AEAD.Open(ciphertext[:0], nonce, ciphertext, additional)
 	if err != nil {
 		return nil, err
 	}

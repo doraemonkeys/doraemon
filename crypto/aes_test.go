@@ -3,7 +3,9 @@ package crypto
 import (
 	"bytes"
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
+	"encoding/hex"
 	"io"
 	"reflect"
 	"testing"
@@ -751,5 +753,240 @@ func TestEncryptWithNonce(t *testing.T) {
 	_, err = cWrong.Decrypt(ciphertext) // Decrypt using the wrong key
 	if err == nil {
 		t.Error("Decrypt should have failed with the wrong key, but didn't")
+	}
+}
+
+func TestEncryptAuth(t *testing.T) {
+	key, _ := hex.DecodeString("6368616e676520746869732070617373") // Example key
+	c, err := NewAESGCM(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		name           string
+		data           []byte
+		additionalData [][]byte
+		expectedError  bool
+	}{
+		{
+			name:           "Empty data, no additional data",
+			data:           []byte{},
+			additionalData: [][]byte{},
+			expectedError:  false,
+		},
+		{
+			name:           "Non-empty data, no additional data",
+			data:           []byte("some data to encrypt"),
+			additionalData: [][]byte{},
+			expectedError:  false,
+		},
+		{
+			name:           "Empty data, with additional data",
+			data:           []byte{},
+			additionalData: [][]byte{[]byte("auth data")},
+			expectedError:  false,
+		},
+		{
+			name:           "Non-empty data, with additional data",
+			data:           []byte("some other data"),
+			additionalData: [][]byte{[]byte("auth data 1"), []byte("auth data 2")},
+			expectedError:  false,
+		},
+		{
+			name: "Non-empty data, multiple additional data",
+			data: []byte("test message"),
+			additionalData: [][]byte{
+				[]byte("additional data 1"),
+				[]byte("additional data 2"),
+				[]byte("additional data 3"),
+			},
+			expectedError: false,
+		},
+		{ // check if different key/nonce produce different ciphertext
+			name:           "Non-empty data, check for consistent ciphertext",
+			data:           []byte("consistent test data"),
+			additionalData: [][]byte{[]byte("consistent auth data")},
+			expectedError:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ciphertext, err := c.EncryptAuth(tc.data, tc.additionalData...)
+			if (err != nil) != tc.expectedError {
+				t.Fatalf("expected error: %v, got: %v", tc.expectedError, err)
+			}
+			if tc.expectedError {
+				return // If an error was expected, we're done.
+			}
+
+			if len(ciphertext) < c.AEAD.NonceSize() {
+				t.Errorf("ciphertext is shorter than nonce size")
+			}
+
+			// Decrypt and check if it matches the original data
+			plaintext, err := c.DecryptAuth(ciphertext, tc.additionalData...)
+			if err != nil {
+				t.Fatalf("DecryptAuth failed: %v", err)
+			}
+			if !bytes.Equal(plaintext, tc.data) {
+				t.Errorf("decrypted data does not match original data.  Expected: %x, got: %x", tc.data, plaintext)
+			}
+
+			if tc.name == "Non-empty data, check for consistent ciphertext" {
+				// Generate another cipher for same data, check if the output changes
+				anotherCiphertext, anotherErr := c.EncryptAuth(tc.data, tc.additionalData...)
+				if anotherErr != nil {
+					t.Fatalf("EncryptAuth 2nd try failed: %v", anotherErr)
+				}
+				if bytes.Equal(ciphertext, anotherCiphertext) {
+					t.Errorf("Repeated calls to encryptAuth are producing identical ciphertexts")
+				}
+			}
+		})
+	}
+}
+
+func TestEncryptAuth_DifferentKeys(t *testing.T) {
+	key1, _ := hex.DecodeString("6368616e676520746869732070617373")
+	key2, _ := hex.DecodeString("736968742065676e6168632073736170") // Different key
+	c1, err := NewAESGCM(key1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c2, err := NewAESGCM(key2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := []byte("test data")
+	additionalData := [][]byte{[]byte("auth data")}
+
+	ciphertext1, err := c1.EncryptAuth(data, additionalData...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciphertext2, err := c2.EncryptAuth(data, additionalData...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bytes.Equal(ciphertext1, ciphertext2) {
+		t.Error("Ciphertexts with different keys are the same")
+	}
+
+	// Attempt to decrypt with the wrong key.
+	_, err = c2.DecryptAuth(ciphertext1, additionalData...)
+	if err == nil {
+		t.Error("Decryption succeeded with the wrong key")
+	}
+
+	_, err = c1.DecryptAuth(ciphertext2, additionalData...)
+	if err == nil {
+		t.Error("Decryption succeeded with the wrong key")
+	}
+
+}
+
+// Helper function to create a broken AEAD (for negative testing).
+func createBrokenAEAD() (cipher.AEAD, error) {
+	key := make([]byte, 32) // Use a valid key size for aes.NewCipher.
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a GCM with a bad tag size
+	gcm, err := cipher.NewGCMWithTagSize(block, 8) // Valid tag sizes are 12-16
+	if err != nil {                                // Expect an error here
+		return nil, err
+	}
+
+	return gcm, nil
+}
+
+func TestEncryptAuth_BrokenAEAD(t *testing.T) {
+	key, _ := hex.DecodeString("6368616e676520746869732070617373")
+	c, err := NewAESGCM(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brokenAEAD, err := createBrokenAEAD()
+	if err == nil {
+		//replace original aead with broken one
+		c.AEAD = brokenAEAD
+
+		_, err := c.EncryptAuth([]byte("test data"), [][]byte{[]byte("auth data")}...)
+		if err == nil {
+			t.Error("Expected error, but got none")
+		}
+	} //else the helper function already return err, skip
+
+	var f = func() {
+		defer func() {
+			r := recover()
+			if r == nil && err == nil {
+				t.Error("Expected panic or error, but got none")
+			}
+		}()
+		//force nonce error
+		c, _ = NewAESGCM(key) //reset
+		c.AEAD = &FaultyReaderAEAD{AEAD: c.AEAD}
+		_, err = c.EncryptAuth([]byte("some data"))
+		if err == nil {
+			t.Error("Expected an error due to faulty nonce generation, but got nil")
+		}
+	}
+
+	// Test that the function panics when the error is nil
+	f()
+
+}
+
+// FaultyReaderAEAD is a wrapper around cipher.AEAD that simulates a failure in nonce generation.
+type FaultyReaderAEAD struct {
+	cipher.AEAD
+}
+
+func (f *FaultyReaderAEAD) NonceSize() int {
+	return f.AEAD.NonceSize()
+}
+
+func (f *FaultyReaderAEAD) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, error) {
+	return f.AEAD.Open(dst, nonce, ciphertext, additionalData)
+}
+
+func (f *FaultyReaderAEAD) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
+	//simulate error
+	return f.AEAD.Seal(dst, []byte("bad_nonce"), plaintext, additionalData)
+}
+
+// Helper for broken reader test
+type brokenReader struct{}
+
+func (br brokenReader) Read(p []byte) (n int, err error) {
+	return 0, io.ErrUnexpectedEOF
+}
+
+func TestEncryptAuth_ReaderFailure(t *testing.T) {
+	key := make([]byte, 32)
+	c, err := NewAESGCM(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Replace the random reader with our broken reader.
+	oldReader := rand.Reader
+	rand.Reader = brokenReader{}
+	defer func() { rand.Reader = oldReader }() // Restore the original reader.
+
+	_, err = c.EncryptAuth([]byte("data"))
+	if err == nil {
+		t.Error("Expected error from reader failure, but got nil")
+	}
+	if err != io.ErrUnexpectedEOF {
+		t.Errorf("Expected ErrUnexpectedEOF, got %v", err)
 	}
 }
