@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 )
 
 type AESCBC struct {
@@ -115,4 +116,62 @@ func (c AESCBC2) Decrypt(data []byte) (plaintext []byte, err error) {
 	mode := cipher.NewCBCDecrypter(c.Block, iv)
 	mode.CryptBlocks(ciphertext, ciphertext)
 	return PKCS7UnPadding(ciphertext, c.BlockSize())
+}
+
+type AESGCM struct {
+	cipher.AEAD
+	key []byte
+}
+
+func NewAESGCM(key []byte) (AESGCM, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return AESGCM{}, err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return AESGCM{}, err
+	}
+	return AESGCM{AEAD: gcm, key: key}, nil
+}
+
+func NewAESGCMFromHex(hexKey string) (AESGCM, error) {
+	key, err := hex.DecodeString(hexKey)
+	if err != nil {
+		return AESGCM{}, err
+	}
+	return NewAESGCM(key)
+}
+
+func (c AESGCM) Encrypt(data []byte) ([]byte, error) {
+	nonce := make([]byte, c.AEAD.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+	ciphertext := c.AEAD.Seal(nonce, nonce, data, nil)
+	return ciphertext, nil
+}
+
+// EncryptWithNonce encrypts data with a nonce, the nonce is the first part of the ciphertext.
+func (c AESGCM) EncryptWithNonce(data []byte) ([]byte, error) {
+	if len(data) < c.AEAD.NonceSize() {
+		return nil, errors.New("data is too short")
+	}
+	nonce := data[:c.AEAD.NonceSize()]
+	ciphertext := c.AEAD.Seal(nonce, nonce, data[c.AEAD.NonceSize():], nil)
+	return ciphertext, nil
+}
+
+func (c AESGCM) Decrypt(data []byte) ([]byte, error) {
+	nonceSize := c.AEAD.NonceSize()
+	if len(data) < nonceSize {
+		return nil, errors.New("ciphertext too short")
+	}
+
+	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+	plaintext, err := c.AEAD.Open(ciphertext[:0], nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
 }

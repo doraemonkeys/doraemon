@@ -9,6 +9,98 @@ import (
 	"testing"
 )
 
+func TestAES(t *testing.T) {
+
+	var newer []func(key string) (SymmetricCipher, error)
+	newer = append(newer, func(key string) (SymmetricCipher, error) {
+		return NewAESGCMFromHex(key)
+	})
+	newer = append(newer, func(key string) (SymmetricCipher, error) {
+		return NewAESCBCFromHex(key)
+	})
+	newer = append(newer, func(key string) (SymmetricCipher, error) {
+		return NewAESCBCFromHex2(key)
+	})
+
+	type args struct {
+		plainText string
+	}
+	// 256 bits
+	key := "A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
+	for _, newCipher := range newer {
+		Crypter, err := newCipher(key)
+		if err != nil {
+			t.Error(err)
+		}
+		tests := []struct {
+			name    string
+			args    args
+			wantErr bool
+		}{
+			{"", args{"123456"}, false},
+			{"", args{"1234567890123456789012345678901234567890123456789012345678901234567890"}, false},
+			{"", args{"h"}, false},
+			{"", args{"hello world"}, false},
+			{"", args{"ghhhhhhhhhhhhhhg"}, false},
+			{"", args{"你好，世界"}, false},
+			{"", args{"hello world, 你好，世界"}, false},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, err := Crypter.Encrypt([]byte(tt.args.plainText))
+				if (err != nil) != tt.wantErr {
+					t.Errorf("CbcAESCrypt.Encrypt() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if err != nil {
+					return
+				}
+				t.Logf("CbcAESCrypt.Encrypt() = %s", got)
+				t.Logf("CbcAESCrypt.Encrypt() = %x", got)
+
+				// 解密
+				got2, err := Crypter.Decrypt(got)
+				if err != nil {
+					t.Errorf("CbcAESCrypt.Decrypt() error = %v", err)
+					return
+				}
+				t.Logf("CbcAESCrypt.Decrypt() = %s", got2)
+
+				if string(got2) != tt.args.plainText {
+					t.Errorf("CbcAESCrypt.Decrypt() got2 = %v, want %v", got2, tt.args.plainText)
+				}
+			})
+		}
+
+		// 加大原文长度
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				for i := 0; i < 10; i++ {
+					tt.args.plainText += tt.args.plainText
+				}
+				got, err := Crypter.Encrypt([]byte(tt.args.plainText))
+				if err != nil {
+					if !tt.wantErr {
+						t.Errorf("CbcAESCrypt.Encrypt() error = %v, wantErr %v", err, tt.wantErr)
+					}
+					return
+				}
+
+				// 解密
+				got2, err := Crypter.Decrypt(got)
+				if err != nil {
+					t.Errorf("CbcAESCrypt.Decrypt() error = %v", err)
+					return
+				}
+
+				if string(got2) != tt.args.plainText {
+					t.Errorf("CbcAESCrypt.Decrypt() got2 = %v, want %v", got2, tt.args.plainText)
+				}
+			})
+		}
+	}
+}
+
 func TestAESCBC(t *testing.T) {
 	type args struct {
 		plainText string
@@ -403,5 +495,261 @@ func TestPKCS7PaddingUnpadding(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestNewAESGCM(t *testing.T) {
+	key := "thisis32bitkey1234thisis32bitkey" // 32 bytes = 256 bits
+	plaintext := "This is a secret message!"
+
+	// Encryption
+	aesgcm, err := NewAESGCM([]byte(key))
+	if err != nil {
+		t.Error("Error creating AESGCM:", err)
+		return
+	}
+
+	ciphertext, err := aesgcm.Encrypt([]byte(plaintext))
+	if err != nil {
+		t.Error("Encryption error:", err)
+		return
+	}
+	t.Logf("Ciphertext: %x\n", ciphertext)
+
+	// Decryption
+	decrypted, err := aesgcm.Decrypt(ciphertext)
+	if err != nil {
+		t.Error("Decryption error:", err)
+		return
+	}
+	t.Logf("Decrypted: %s\n", decrypted)
+
+	// Example using Hex key
+	hexKey := "74686973697333326269746b65793132333474686973697333326269746b6579" // Hex representation of the key above
+	aesgcmHex, err := NewAESGCMFromHex(hexKey)
+	if err != nil {
+		t.Error("Error creating AESGCM from hex:", err)
+		return
+	}
+	ciphertextHex, err := aesgcmHex.Encrypt([]byte(plaintext))
+	if err != nil {
+		t.Error("Encryption error (hex key):", err)
+		return
+	}
+	t.Logf("Ciphertext (hex key): %x\n", ciphertextHex)
+
+	decryptedHex, err := aesgcmHex.Decrypt(ciphertextHex)
+	if err != nil {
+		t.Error("Decryption error (hex key):", err)
+		return
+	}
+	t.Logf("Decrypted (hex key): %s\n", decryptedHex)
+
+	// Example with specific nonce
+
+	nonce := make([]byte, aesgcm.AEAD.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		t.Error("Error making nonce:", err)
+		return
+	}
+
+	nonce = append(nonce, []byte(plaintext)...)
+
+	ciphertextWithNonce, err := aesgcm.EncryptWithNonce(nonce)
+	if err != nil {
+		t.Error("Encryption error with nonce:", err)
+		return
+	}
+	t.Logf("Ciphertext with nonce: %x\n", ciphertextWithNonce)
+
+	decryptedWithNonce, err := aesgcm.Decrypt(ciphertextWithNonce)
+	if err != nil {
+		t.Error("Decryption error with nonce:", err)
+		return
+	}
+	t.Logf("Decrypted with nonce: %s\n", decryptedWithNonce)
+
+	if string(decryptedWithNonce) != plaintext {
+		t.Errorf("Decrypted with nonce: %s, want %s", decryptedWithNonce, plaintext)
+	}
+}
+
+// TestNewAESGCM tests the NewAESGCM constructor.
+func TestNewAESGCM2(t *testing.T) {
+	key := make([]byte, 32) // Valid 256-bit key
+	rand.Read(key)          // Fill with random data
+
+	_, err := NewAESGCM(key)
+	if err != nil {
+		t.Fatalf("NewAESGCM failed: %v", err)
+	}
+
+	// Test with invalid key lengths.
+	invalidKey1 := make([]byte, 16) // too short
+	_, err = NewAESGCM(invalidKey1)
+	if err != nil {
+		t.Error("NewAESGCM failed with a 16-byte key")
+	}
+	invalidKey2 := make([]byte, 20) // invalid length
+	_, err = NewAESGCM(invalidKey2)
+	if err == nil {
+		t.Error("NewAESGCM should have failed with a 20-byte key, but it didn't.")
+	}
+
+	invalidKey3 := make([]byte, 64) // too long
+	_, err = NewAESGCM(invalidKey3)
+	if err == nil {
+		t.Error("NewAESGCM should have failed with a 64-byte key, but it didn't.")
+	}
+}
+
+// TestNewAESGCMFromHex tests the NewAESGCMFromHex constructor.
+func TestNewAESGCMFromHex(t *testing.T) {
+	// Test case 1: Valid key
+	validHexKey := "6368616e676520746869732070617373776f726420746f206120736563726574" // 32-byte (256-bit) key
+	_, err := NewAESGCMFromHex(validHexKey)
+	if err != nil {
+		t.Errorf("NewAESGCMFromHex failed with a valid key: %v", err)
+	}
+
+	// Test case 2: Invalid hex string (non-hex characters)
+	invalidHexKey1 := "xyz123"
+	_, err = NewAESGCMFromHex(invalidHexKey1)
+	if err == nil {
+		t.Errorf("NewAESGCMFromHex should have failed with invalid hex characters")
+	}
+
+	//Test case 4: Invalid hex string (incorrect length, too long)
+	invalidHexKey3 := "6368616e676520746869732070617373776f726420746f20612073656372657470617373776f726420746f206120736563726574"
+	_, err = NewAESGCMFromHex(invalidHexKey3)
+	if err == nil {
+		t.Error("NewAESGCMFromHex should have failed with an invalid key length")
+	}
+
+}
+
+// TestEncryptDecrypt tests the Encrypt and Decrypt methods.
+func TestEncryptDecrypt(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+	c, err := NewAESGCM(key)
+	if err != nil {
+		t.Fatalf("NewAESGCM failed: %v", err)
+	}
+
+	plaintext := []byte("this is a secret message")
+	ciphertext, err := c.Encrypt(plaintext)
+	if err != nil {
+		t.Fatalf("Encrypt failed: %v", err)
+	}
+
+	decrypted, err := c.Decrypt(ciphertext)
+	if err != nil {
+		t.Fatalf("Decrypt failed: %v", err)
+	}
+
+	if !bytes.Equal(plaintext, decrypted) {
+		t.Errorf("Decrypted text does not match original plaintext. Got: %s, Expected: %s", decrypted, plaintext)
+	}
+
+	//Test case 2: Empty string
+	plaintext2 := []byte("")
+	ciphertext2, err := c.Encrypt(plaintext2)
+	if err != nil {
+		t.Fatalf("Encrypt failed: %v", err)
+	}
+	decrypted2, err := c.Decrypt(ciphertext2)
+	if err != nil {
+		t.Fatalf("Decrypt failed: %v", err)
+	}
+	if !bytes.Equal(plaintext2, decrypted2) {
+		t.Errorf("Decrypted text does not match original plaintext. Got: %s, Expected: %s", decrypted2, plaintext2)
+	}
+
+	// Test case 3: Decrypting with wrong key.
+	wrongKey := make([]byte, 32)
+	rand.Read(wrongKey)
+	cWrong, _ := NewAESGCM(wrongKey)
+	_, err = cWrong.Decrypt(ciphertext) // ciphertext was generated using c, not cWrong.
+	if err == nil {
+		t.Error("Decrypt should have failed with an incorrect key, but didn't.")
+	}
+
+	//Test case 4: Tampered ciphertext
+	tamperedCiphertext := make([]byte, len(ciphertext))
+	copy(tamperedCiphertext, ciphertext)
+	tamperedCiphertext[len(tamperedCiphertext)-1] ^= 0xFF // Modify a byte.
+
+	_, err = c.Decrypt(tamperedCiphertext)
+	if err == nil {
+		t.Error("Decrypt should have failed with tampered ciphertext, but didn't")
+	}
+
+	//Test case 5: short ciphertext
+	shortCiphertext := []byte{1, 2, 3}
+	_, err = c.Decrypt(shortCiphertext)
+	if err == nil {
+		t.Error("Decrypt should have failed with short ciphertext, but didn't")
+	}
+
+}
+
+func TestEncryptWithNonce(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+	c, err := NewAESGCM(key)
+	if err != nil {
+		t.Fatalf("NewAESGCM failed: %v", err)
+	}
+
+	nonceSize := c.NonceSize()
+	data := make([]byte, nonceSize+len("this is a secret message"))
+	copy(data[nonceSize:], []byte("this is a secret message"))
+	rand.Read(data[:nonceSize]) // Fill the nonce part with random data
+
+	ciphertext, err := c.EncryptWithNonce(data)
+	if err != nil {
+		t.Fatalf("EncryptWithNonce failed: %v", err)
+	}
+
+	decrypted, err := c.Decrypt(ciphertext)
+	if err != nil {
+		t.Fatalf("Decrypt failed: %v", err)
+	}
+
+	if !bytes.Equal(data[nonceSize:], decrypted) {
+		t.Errorf("Decrypted text does not match original plaintext. Got: %s, Expected: %s", decrypted, data[nonceSize:])
+	}
+
+	//Test Case 2: Empty string
+	data2 := make([]byte, nonceSize)
+	rand.Read(data2)
+	ciphertext2, err := c.EncryptWithNonce(data2)
+	if err != nil {
+		t.Fatalf("EncryptWithNonce failed: %v", err)
+	}
+	decrypted2, err := c.Decrypt(ciphertext2)
+	if err != nil {
+		t.Fatalf("Decrypt failed: %v", err)
+	}
+
+	if !bytes.Equal([]byte{}, decrypted2) {
+		t.Errorf("Decrypted text does not match original plaintext. Got: %s, Expected: %s", decrypted2, []byte{})
+	}
+
+	//Test Case 3: Data is too short
+	shortData := make([]byte, nonceSize-1)
+	_, err = c.EncryptWithNonce(shortData)
+	if err == nil {
+		t.Error("EncryptWithNonce should have failed, but didn't")
+	}
+
+	//Test Case 4: Decrypt with wrong key
+	wrongKey := make([]byte, 32)
+	rand.Read(wrongKey)
+	cWrong, _ := NewAESGCM(wrongKey)
+	_, err = cWrong.Decrypt(ciphertext) // Decrypt using the wrong key
+	if err == nil {
+		t.Error("Decrypt should have failed with the wrong key, but didn't")
 	}
 }
