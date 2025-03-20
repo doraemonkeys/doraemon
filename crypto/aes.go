@@ -11,6 +11,12 @@ import (
 	"io"
 )
 
+var (
+	_ SymmetricCipher = &AESCBC{}
+	_ SymmetricCipher = &AESCBC2{}
+	_ SymmetricCipher = &AESGCM{}
+)
+
 type AESCBC struct {
 	cipher.Block
 	key []byte
