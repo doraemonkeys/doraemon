@@ -170,17 +170,15 @@ func (rl *RateLimiter) Allow(userID string) bool {
 }
 
 func (rl *RateLimiter) cleanupInactiveLimiters(ctx context.Context) {
-	ticker := time.NewTicker(rl.windowSize * 5)
-	defer ticker.Stop()
 	const maxIterations = 5000
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-time.After(rl.windowSize * 5):
 		}
-		zombies := []string{}
+		var zombies []string
 		rl.limitersMu.RLock()
 		iterations := 0
 		for userID, limiter := range rl.limiters {
