@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/wumansgy/goEncrypt/aes"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // 初始化向量（IV，Initialization Vector）是许多任务作模式中用于将加密随机化的一个位块，
@@ -79,4 +80,23 @@ func (a *CbcAESCrypt) Decrypt(cipherText []byte) ([]byte, error) {
 
 func (a *CbcAESCrypt) rand16Byte() []byte {
 	return RandNByte(16)
+}
+
+// Deprecated
+//
+// BcryptHash 对传入字符串进行bcrypt哈希
+func BcryptHash(str string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(str), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+// Deprecated
+//
+// BcryptMatch 对传入字符串和哈希字符串进行比对,str为明文
+func BcryptMatch(hash string, str string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(str))
+	return err == nil
 }

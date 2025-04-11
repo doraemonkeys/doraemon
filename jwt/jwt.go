@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"slices"
@@ -26,6 +27,7 @@ var _ jwt.Claims = CustomClaims[any]{}
 
 var (
 	ErrInvalidSecretKey = errors.New("invalid secret key")
+	ErrInvalidType      = errors.New("invalid type")
 )
 
 func NewJWT[T comparable](secretKey any, signingAlgo jwt.SigningMethod) (*JWT[T], error) {
@@ -47,7 +49,9 @@ func NewJWT[T comparable](secretKey any, signingAlgo jwt.SigningMethod) (*JWT[T]
 		}
 	default:
 	}
-
+	if reflect.TypeFor[T]().Kind() == reflect.Pointer {
+		return nil, ErrInvalidType
+	}
 	return &JWT[T]{
 		secretKey:   secretKey,
 		signingAlgo: signingAlgo,

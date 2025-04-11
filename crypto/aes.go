@@ -168,7 +168,10 @@ func (c AESGCM) encryptAuth(data []byte, additionalData ...[]byte) ([]byte, erro
 	return ciphertext, nil
 }
 
-// EncryptWithNonce encrypts data with a nonce, the nonce is the first part of the plaintext.
+// EncryptWithNonce encrypts data with a nonce, the nonce is the first part of the plaintext(12 bytes).
+//
+// Data storage will not be reused, so the data will not be modified.
+// At least in go1.24, this is the case.
 func (c AESGCM) EncryptWithNonce(data []byte, additionalData ...[]byte) ([]byte, error) {
 	if len(data) < c.AEAD.NonceSize() {
 		return nil, errors.New("data is too short")
@@ -178,10 +181,16 @@ func (c AESGCM) EncryptWithNonce(data []byte, additionalData ...[]byte) ([]byte,
 	return ciphertext, nil
 }
 
+// Decrypt decrypts data with a nonce, the nonce is the first part of the plaintext(12 bytes).
+//
+// Data storage will be reused, so the data will be modified.
 func (c AESGCM) Decrypt(data []byte) ([]byte, error) {
 	return c.decryptAuth(data)
 }
 
+// DecryptAuth decrypts data with a nonce, the nonce is the first part of the plaintext(12 bytes).
+//
+// Data storage will be reused, so the data will be modified.
 func (c AESGCM) DecryptAuth(data []byte, additionalData ...[]byte) ([]byte, error) {
 	return c.decryptAuth(data, additionalData...)
 }

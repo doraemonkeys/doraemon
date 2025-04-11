@@ -517,7 +517,8 @@ func TestNewAESGCM(t *testing.T) {
 		return
 	}
 	t.Logf("Ciphertext: %x\n", ciphertext)
-
+	ciphertextCopy := make([]byte, len(ciphertext))
+	copy(ciphertextCopy, ciphertext)
 	// Decryption
 	decrypted, err := aesgcm.Decrypt(ciphertext)
 	if err != nil {
@@ -525,6 +526,9 @@ func TestNewAESGCM(t *testing.T) {
 		return
 	}
 	t.Logf("Decrypted: %s\n", decrypted)
+	if bytes.Equal(ciphertext, ciphertextCopy) {
+		t.Error("expect ciphertext to be modified")
+	}
 
 	// Example using Hex key
 	hexKey := "74686973697333326269746b65793132333474686973697333326269746b6579" // Hex representation of the key above
@@ -556,13 +560,17 @@ func TestNewAESGCM(t *testing.T) {
 	}
 
 	nonce = append(nonce, []byte(plaintext)...)
-
+	nonceCopy := make([]byte, len(nonce))
+	copy(nonceCopy, nonce)
 	ciphertextWithNonce, err := aesgcm.EncryptWithNonce(nonce)
 	if err != nil {
 		t.Error("Encryption error with nonce:", err)
 		return
 	}
 	t.Logf("Ciphertext with nonce: %x\n", ciphertextWithNonce)
+	if !bytes.Equal(nonce, nonceCopy) {
+		t.Error("plaintext should not be modified")
+	}
 
 	decryptedWithNonce, err := aesgcm.Decrypt(ciphertextWithNonce)
 	if err != nil {
