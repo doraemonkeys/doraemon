@@ -46,6 +46,10 @@ type PageInfo struct {
 	// To retrive all items, just set the page very large
 	Page     int `json:"page" form:"page" binding:"required,min=1"`
 	PageSize int `json:"pageSize" form:"pageSize" binding:"required,min=1,max=100"`
+	// // SortBy: field name, empty string means no sort
+	// SortBy string `json:"sortBy" form:"sortBy"`
+	// // SortType: "asc" or "desc".
+	// SortType string `json:"sortType" form:"sortType" binding:"omitempty,oneof=asc desc"`
 }
 
 type PaginatedData[T any] struct {
@@ -55,6 +59,31 @@ type PaginatedData[T any] struct {
 	PageSize int   `json:"pageSize"`
 }
 
+type KeysetPage struct {
+	// How many items to return per page.
+	Limit int `json:"limit" form:"limit" binding:"required,min=1,max=100"`
+	// Field name to sort by (e.g., "created_at", "name").
+	// Must be a field suitable for keyset pagination (indexed, relatively unique).
+	SortBy string `json:"sortBy" form:"sortBy" binding:"required"`
+	// default is ASC, if true, then DESC
+	DESC bool `json:"desc" form:"desc"`
+	// An opaque cursor indicating the last item from the previous page (for forward pagination).
+	// The client should send the 'nextCursor' received from the previous response here.
+	After any `json:"after" form:"after"`
+	// An opaque cursor indicating the first item from the previous page (for backward pagination).
+	// The client should send the 'previousCursor' received from the previous response here.
+	Before any `json:"before" form:"before"`
+}
+
+type KeysetPaginatedData[T any] struct {
+	List []T `json:"list"`
+	// Opaque cursor to fetch the next page. Null if no next page.
+	NextCursor *string `json:"nextCursor"`
+	// Opaque cursor to fetch the previous page. Null if no previous page.
+	PreviousCursor *string `json:"previousCursor"`
+	// Note: Total count is typically omitted in keyset pagination.
+	// Total int64 `json:"-"`
+}
 type Response struct {
 	Status
 	Data any `json:"data"`
