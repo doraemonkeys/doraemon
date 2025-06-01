@@ -275,11 +275,11 @@ func FormatAsPowerOfTwoPlusOneShiftedBig(num *big.Int) (ok bool, result string) 
 	if ok {
 		// return fmt.Sprintf("(2^%d + 1) << %d", n, m)
 		left := fmt.Sprintf("(1<<%d + 1)", n)
-		if n == 0 {
-			left = "2"
-		}
 		if m == 0 {
 			return true, strings.Trim(left, "()")
+		}
+		if n == 0 {
+			return true, fmt.Sprintf("1 << %d", m+1)
 		}
 		return true, fmt.Sprintf("%s << %d", left, m)
 	}
