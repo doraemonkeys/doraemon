@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/arduino/go-win32-utils v1.0.0
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
+	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/ebitengine/purego v0.8.4
 	github.com/ethereum/go-ethereum v1.15.11
