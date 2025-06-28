@@ -207,3 +207,5 @@ func (rl *RateLimiter) cleanupInactiveLimiters(ctx context.Context) {
 func (rl *RateLimiter) CancelCleanup() {
 	rl.cleanupCancel()
 }
+
+type Cancel = func() <-chan struct{}
