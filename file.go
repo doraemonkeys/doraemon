@@ -837,7 +837,7 @@ func WriteFile(filePath string, perm fs.FileMode, datas ...[]byte) error {
 	return f.Close()
 }
 
-func WriteFile2(filePath string, data io.Reader, perm fs.FileMode) error {
+func WriteFileFromReader(filePath string, perm fs.FileMode, data io.Reader) error {
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
 		return err
@@ -858,4 +858,18 @@ func WriteFilePreservePerms(name string, data []byte) error {
 		perm = f.Mode()
 	}
 	return os.WriteFile(name, data, perm)
+}
+
+func AppendFile(filePath string, data ...[]byte) error {
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	for _, d := range data {
+		_, err = f.Write(d)
+		if err != nil {
+			return err
+		}
+	}
+	return f.Close()
 }
