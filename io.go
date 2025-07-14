@@ -3,7 +3,11 @@ package doraemon
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 func MultiReaderCloser(readers ...io.ReadCloser) io.ReadCloser {
@@ -117,4 +121,121 @@ func ReadAllWithLimitBuffer(reader io.Reader, buf []byte) (n int, err error) {
 			return
 		}
 	}
+}
+
+// Watchdog monitors a task to ensure it remains "alive".
+// If its Pet() method is not called within a configured interval, a timeout is triggered.
+type Watchdog struct {
+	checkInterval   time.Duration
+	onTimeout       func()
+	timeoutAutoStop bool
+
+	petCount       atomic.Uint32
+	lastCheckCount uint32
+
+	// startOnce ensures the monitoring goroutine is started only once.
+	startOnce sync.Once
+	// wg waits for the monitoring goroutine to exit completely.
+	wg sync.WaitGroup
+	// stopCh signals the monitoring goroutine to stop.
+	stopCh chan struct{}
+}
+
+// Option defines a function that configures a Watchdog instance.
+type Option func(*Watchdog)
+
+// WithCheckInterval sets the interval for the watchdog's checks.
+func WithCheckInterval(interval time.Duration) Option {
+	return func(w *Watchdog) {
+		if interval > 0 {
+			w.checkInterval = interval
+		}
+	}
+}
+
+// WithOnTimeout sets the callback function to be executed on timeout.
+func WithOnTimeout(onTimeout func()) Option {
+	return func(w *Watchdog) {
+		if onTimeout != nil {
+			w.onTimeout = onTimeout
+		}
+	}
+}
+
+// WithAutoStopOnTimeout configures the watchdog to automatically stop
+// after the first timeout event.
+func WithAutoStopOnTimeout(autoStop bool) Option {
+	return func(w *Watchdog) {
+		w.timeoutAutoStop = autoStop
+	}
+}
+
+// NewWatchdog creates a new Watchdog instance configured with the provided options.
+func NewWatchdog(opts ...Option) *Watchdog {
+	// Default configuration
+	w := &Watchdog{
+		checkInterval: 10 * time.Second,
+		onTimeout: func() {
+			fmt.Println("Watchdog timeout: No activity detected.")
+		},
+		timeoutAutoStop: false,
+		stopCh:          make(chan struct{}),
+	}
+
+	for _, opt := range opts {
+		opt(w)
+	}
+	return w
+}
+
+// Start begins the watchdog's monitoring process.
+// It is safe to call Start multiple times.
+func (w *Watchdog) Start() {
+	w.startOnce.Do(func() {
+		w.wg.Add(1)
+		go w.monitor()
+	})
+}
+
+// monitor is the internal loop that performs the checks.
+func (w *Watchdog) monitor() {
+	defer w.wg.Done()
+	ticker := time.NewTicker(w.checkInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-w.stopCh:
+			return
+		case <-ticker.C:
+		}
+		if w.petCount.Load() == w.lastCheckCount {
+			w.onTimeout()
+			if w.timeoutAutoStop {
+				// Directly close the stop channel to terminate instead of calling Stop()
+				// to avoid a deadlock on the waitgroup.
+				close(w.stopCh)
+				return
+			}
+		}
+		w.lastCheckCount = w.petCount.Load()
+	}
+}
+
+// Pet signals to the watchdog that the monitored process is still alive.
+func (w *Watchdog) Pet() {
+	w.petCount.Add(1)
+}
+
+// Stop gracefully terminates the watchdog's monitoring process, blocking until it has shut down.
+func (w *Watchdog) Stop() {
+	// Use a non-blocking select to close the channel only if it's not already closed.
+	select {
+	case <-w.stopCh:
+		// Already closed.
+	default:
+		close(w.stopCh)
+	}
+	// Wait for the monitor goroutine to finish.
+	w.wg.Wait()
 }
