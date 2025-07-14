@@ -141,11 +141,11 @@ type Watchdog struct {
 	stopCh chan struct{}
 }
 
-// Option defines a function that configures a Watchdog instance.
-type Option func(*Watchdog)
+// WatchdogOption defines a function that configures a Watchdog instance.
+type WatchdogOption func(*Watchdog)
 
-// WithCheckInterval sets the interval for the watchdog's checks.
-func WithCheckInterval(interval time.Duration) Option {
+// WatchdogWithCheckInterval sets the interval for the watchdog's checks.
+func WatchdogWithCheckInterval(interval time.Duration) WatchdogOption {
 	return func(w *Watchdog) {
 		if interval > 0 {
 			w.checkInterval = interval
@@ -153,8 +153,8 @@ func WithCheckInterval(interval time.Duration) Option {
 	}
 }
 
-// WithOnTimeout sets the callback function to be executed on timeout.
-func WithOnTimeout(onTimeout func()) Option {
+// WatchdogWithOnTimeout sets the callback function to be executed on timeout.
+func WatchdogWithOnTimeout(onTimeout func()) WatchdogOption {
 	return func(w *Watchdog) {
 		if onTimeout != nil {
 			w.onTimeout = onTimeout
@@ -162,16 +162,16 @@ func WithOnTimeout(onTimeout func()) Option {
 	}
 }
 
-// WithAutoStopOnTimeout configures the watchdog to automatically stop
+// WatchdogWithAutoStopOnTimeout configures the watchdog to automatically stop
 // after the first timeout event.
-func WithAutoStopOnTimeout(autoStop bool) Option {
+func WatchdogWithAutoStopOnTimeout(autoStop bool) WatchdogOption {
 	return func(w *Watchdog) {
 		w.timeoutAutoStop = autoStop
 	}
 }
 
 // NewWatchdog creates a new Watchdog instance configured with the provided options.
-func NewWatchdog(opts ...Option) *Watchdog {
+func NewWatchdog(opts ...WatchdogOption) *Watchdog {
 	// Default configuration
 	w := &Watchdog{
 		checkInterval: 10 * time.Second,
