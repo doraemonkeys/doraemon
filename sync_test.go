@@ -760,6 +760,68 @@ func BenchmarkGates3(b *testing.B) {
 				go func(runner *StartGateRunner) {
 					for {
 						runner.ReadyAtGate()
+						randNs := rand.IntN(1500)
+						time.Sleep(time.Duration(randNs) * time.Nanosecond)
+						runner.FinishCycle()
+					}
+				}(runners[j])
+			}
+
+			for i := 0; i < b.N; i++ {
+				gate.OpenGate()
+				gate.WaitAllRunnerFinished()
+			}
+		})
+
+		// 基准测试：简单的 Channel 实现
+		b.Run(fmt.Sprintf("Simple-Channel-%d", count), func(b *testing.B) {
+			// 由于 Simple-Channel 版本不是真正可循环的，
+			// 我们必须在每次迭代中重新创建它。
+			// 这也是这个设计的一个重要特性（或缺点），应该被包含在测量中。
+			b.ReportAllocs()
+			// 这个 WaitGroup 是测试必需的，用来等待所有 goroutine 结束，
+			// 以确保一次迭代的清理工作在下一次迭代开始前完成。
+			var cycleWg sync.WaitGroup
+
+			gate := NewCyclicStartGate2(uint(count))
+
+			for j := uint32(0); j < count; j++ {
+				go func() {
+					for {
+						gate.ReadyAtGate()
+						randNs := rand.IntN(1500)
+						time.Sleep(time.Duration(randNs) * time.Nanosecond)
+						cycleWg.Done()
+					}
+				}()
+			}
+
+			for i := 0; i < b.N; i++ {
+				cycleWg.Add(int(count))
+				gate.OpenGate()
+				cycleWg.Wait()
+			}
+		})
+	}
+}
+
+// runBenchmarkGate 是一个总的基准测试函数
+func BenchmarkGates4(b *testing.B) {
+	// 测试不同数量的并发 goroutine
+	counts := []uint32{10, 100, 1000}
+
+	for _, count := range counts {
+		// 基准测试：复杂的 WaitGroup + Cond 实现
+		b.Run(fmt.Sprintf("Complex-WaitGroup-%d", count), func(b *testing.B) {
+			gate, runners := NewCyclicStartGate(count)
+
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for j := 0; j < int(count); j++ {
+				go func(runner *StartGateRunner) {
+					for {
+						runner.ReadyAtGate()
 						runtime.Gosched()
 						runner.FinishCycle()
 					}
