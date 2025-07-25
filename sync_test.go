@@ -657,15 +657,12 @@ func BenchmarkGates(b *testing.B) {
 
 		// 基准测试：简单的 Channel 实现
 		b.Run(fmt.Sprintf("Simple-Channel-%d", count), func(b *testing.B) {
-			// 由于 Simple-Channel 版本不是真正可循环的，
-			// 我们必须在每次迭代中重新创建它。
-			// 这也是这个设计的一个重要特性（或缺点），应该被包含在测量中。
+			gate := NewCyclicStartGate2(uint(count))
+			// 这个 WaitGroup 是测试必需的，用来等待所有 goroutine 结束，
+			// 以确保一次迭代的清理工作在下一次迭代开始前完成。
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				gate := NewCyclicStartGate2(uint(count))
-				// 这个 WaitGroup 是测试必需的，用来等待所有 goroutine 结束，
-				// 以确保一次迭代的清理工作在下一次迭代开始前完成。
 				var cycleWg sync.WaitGroup
 				cycleWg.Add(int(count))
 
