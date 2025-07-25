@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"sync/atomic"
 )
 
 type WaitGroup struct {
@@ -209,3 +211,145 @@ func (rl *RateLimiter) CancelCleanup() {
 }
 
 type Cancel = func() <-chan struct{}
+
+type SyncOptional[T any] struct {
+	mu      sync.RWMutex
+	hasItem bool
+	item    T
+}
+
+func (so *SyncOptional[T]) Set(item T) {
+	so.mu.Lock()
+	so.item = item
+	so.hasItem = true
+	so.mu.Unlock()
+}
+
+func (so *SyncOptional[T]) Swap(item T) (T, bool) {
+	so.mu.Lock()
+	oldItem := so.item
+	so.item = item
+	hasItem := so.hasItem
+	so.hasItem = true
+	so.mu.Unlock()
+	return oldItem, hasItem
+}
+
+func (so *SyncOptional[T]) Get() (T, bool) {
+	so.mu.RLock()
+	defer so.mu.RUnlock()
+	return so.item, so.hasItem
+}
+
+func (so *SyncOptional[T]) Take() T {
+	so.mu.Lock()
+	defer so.mu.Unlock()
+	if !so.hasItem {
+		panic("no item")
+	}
+	so.hasItem = false
+	return so.item
+}
+
+func (so *SyncOptional[T]) HasItem() bool {
+	so.mu.RLock()
+	defer so.mu.RUnlock()
+	return so.hasItem
+}
+
+type CyclicStartGate2 struct {
+	ch              chan struct{}
+	subscriberCount uint
+}
+
+func NewCyclicStartGate2(count uint) CyclicStartGate2 {
+	return CyclicStartGate2{
+		ch:              make(chan struct{}),
+		subscriberCount: count,
+	}
+}
+
+func (c CyclicStartGate2) ReadyAtGate() {
+	c.ch <- struct{}{}
+}
+
+func (c CyclicStartGate2) OpenGate() {
+	for range c.subscriberCount {
+		<-c.ch
+	}
+}
+
+type CyclicStartGate struct {
+	wg              sync.WaitGroup
+	waiterGroup     sync.WaitGroup
+	fastWaiterCond  sync.Cond
+	startCount      atomic.Uint32
+	subscriberCount uint32
+	wgAddCount      int
+}
+
+func NewCyclicStartGate(count uint32) (*CyclicStartGate, []*StartGateRunner) {
+	c := &CyclicStartGate{
+		subscriberCount: count,
+		fastWaiterCond:  sync.Cond{L: &sync.Mutex{}},
+	}
+	c.resetState()
+	waiters := make([]*StartGateRunner, count)
+	for i := range waiters {
+		waiters[i] = &StartGateRunner{
+			currentCount: 0,
+			barrier:      c,
+		}
+	}
+	return c, waiters
+}
+
+func (c *CyclicStartGate) resetState() {
+	// The lock ensures memory visibility
+	c.fastWaiterCond.L.Lock()
+	c.wgAddCount++
+	c.wg.Add(1)
+	c.fastWaiterCond.Broadcast()
+	c.fastWaiterCond.L.Unlock()
+	c.startCount.Store(0)
+}
+
+func (c *CyclicStartGate) arriveAtGate(expect int) {
+	c.fastWaiterCond.L.Lock()
+	for c.wgAddCount != expect {
+		c.fastWaiterCond.Wait()
+	}
+	c.fastWaiterCond.L.Unlock()
+
+	c.wg.Wait()
+	if c.startCount.Add(1) == c.subscriberCount {
+		// all subscribers were awakened
+		c.resetState()
+	}
+}
+
+func (c *CyclicStartGate) OpenGate() {
+	if c.startCount.Load() != 0 {
+		panic("should wait all workers before open")
+	}
+	c.waiterGroup.Add(int(c.subscriberCount))
+	c.wg.Done()
+}
+
+func (c *CyclicStartGate) WaitAllRunnerFinished() {
+	c.waiterGroup.Wait()
+}
+
+type StartGateRunner struct {
+	currentCount int
+	barrier      *CyclicStartGate
+}
+
+func (c *StartGateRunner) ReadyAtGate() {
+	c.currentCount++
+	c.barrier.arriveAtGate(c.currentCount)
+}
+
+func (c *StartGateRunner) FinishCycle() {
+	c.barrier.waiterGroup.Done()
+}
