@@ -310,12 +310,14 @@ func (c *CyclicStartGate) resetState() {
 	c.wgAddCount++
 	c.wg.Add(1)
 	c.fastWaiterCond.L.Unlock()
+
 	c.startCount.Store(0)
 }
 
 func (c *CyclicStartGate) arriveAtGate(expect int) {
 	c.fastWaiterCond.L.Lock()
 	for c.wgAddCount != expect {
+		// compare condition in loop to prevent being awakened by the signal of the previous cycle
 		c.fastWaiterCond.Wait()
 	}
 	c.fastWaiterCond.L.Unlock()
@@ -333,7 +335,11 @@ func (c *CyclicStartGate) OpenGate() {
 	}
 	c.waiterGroup.Add(int(c.subscriberCount))
 	c.wg.Done()
+
+	c.fastWaiterCond.L.Lock()
+	// broadcast must be locked to prevent lost wakeup
 	c.fastWaiterCond.Broadcast()
+	c.fastWaiterCond.L.Unlock()
 }
 
 func (c *CyclicStartGate) WaitAllRunnerFinished() {
