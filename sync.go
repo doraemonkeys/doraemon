@@ -270,12 +270,12 @@ func NewCyclicStartGate2(count uint) CyclicStartGate2 {
 }
 
 func (c CyclicStartGate2) ReadyAtGate() {
-	c.ch <- struct{}{}
+	<-c.ch
 }
 
 func (c CyclicStartGate2) OpenGate() {
 	for range c.subscriberCount {
-		<-c.ch
+		c.ch <- struct{}{}
 	}
 }
 
@@ -309,7 +309,6 @@ func (c *CyclicStartGate) resetState() {
 	c.fastWaiterCond.L.Lock()
 	c.wgAddCount++
 	c.wg.Add(1)
-	c.fastWaiterCond.Broadcast()
 	c.fastWaiterCond.L.Unlock()
 	c.startCount.Store(0)
 }
@@ -334,6 +333,7 @@ func (c *CyclicStartGate) OpenGate() {
 	}
 	c.waiterGroup.Add(int(c.subscriberCount))
 	c.wg.Done()
+	c.fastWaiterCond.Broadcast()
 }
 
 func (c *CyclicStartGate) WaitAllRunnerFinished() {
