@@ -271,7 +271,7 @@ func NewCyclicStartGate2(count uint) CyclicStartGate2 {
 	}
 }
 
-func (c CyclicStartGate2) ReadyAtGate() (closed bool) {
+func (c CyclicStartGate2) ReadyAtGate() (opened bool) {
 	return <-c.ch
 }
 
