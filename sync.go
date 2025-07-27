@@ -260,14 +260,14 @@ func (so *SyncOptional[T]) HasItem() bool {
 type CyclicStartGate2 struct {
 	ch              chan bool
 	subscriberCount uint
-	closed          *atomic.Bool
+	closeOnce       *sync.Once
 }
 
 func NewCyclicStartGate2(count uint) CyclicStartGate2 {
 	return CyclicStartGate2{
 		ch:              make(chan bool),
 		subscriberCount: count,
-		closed:          &atomic.Bool{},
+		closeOnce:       &sync.Once{},
 	}
 }
 
@@ -282,11 +282,12 @@ func (c CyclicStartGate2) OpenGate() {
 }
 
 func (c CyclicStartGate2) Close() bool {
-	if c.closed.CompareAndSwap(false, true) {
+	var once bool
+	c.closeOnce.Do(func() {
 		close(c.ch)
-		return true
-	}
-	return false
+		once = true
+	})
+	return once
 }
 
 type CyclicStartGate struct {
