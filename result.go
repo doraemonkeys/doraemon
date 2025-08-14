@@ -58,3 +58,7 @@ func (r Result[T]) UnwrapOrElse(f func(error) T) T {
 	}
 	return f(r.Err)
 }
+
+func (r Result[T]) GoResult() (T, error) {
+	return r.Value, r.Err
+}
