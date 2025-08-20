@@ -82,18 +82,18 @@ func NewSlidingWindowRateLimiter(limit int, windowSize time.Duration, subWindowN
 func (rl *SlidingWindowRateLimiter) Allow() bool {
 	now := time.Now()
 	timePassed := now.Sub(rl.lastUpdateTime)
-	bucketsToAdvance := int(timePassed / (rl.windowSize / time.Duration(rl.subWindowNum)))
+	elapsedBuckets := int(timePassed / (rl.windowSize / time.Duration(rl.subWindowNum)))
 
 	rl.bucketsMu.Lock()
 	defer rl.bucketsMu.Unlock()
 
-	if bucketsToAdvance > 0 {
-		if bucketsToAdvance > rl.subWindowNum {
+	if elapsedBuckets > 0 {
+		if elapsedBuckets > rl.subWindowNum {
 			// Maximum to clear all sub-windows
-			bucketsToAdvance = rl.subWindowNum
+			elapsedBuckets = rl.subWindowNum
 		}
 		// Move to the next sub-window and clear the current sub-window count
-		for range bucketsToAdvance {
+		for range elapsedBuckets {
 			rl.currentBucket = (rl.currentBucket + 1) % rl.subWindowNum
 			rl.buckets[rl.currentBucket] = 0
 		}
