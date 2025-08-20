@@ -80,12 +80,14 @@ func NewSlidingWindowRateLimiter(limit int, windowSize time.Duration, subWindowN
 }
 
 func (rl *SlidingWindowRateLimiter) Allow() bool {
-	now := time.Now()
-	timePassed := now.Sub(rl.lastUpdateTime)
-	elapsedBuckets := int(timePassed / (rl.windowSize / time.Duration(rl.subWindowNum)))
 
 	rl.bucketsMu.Lock()
 	defer rl.bucketsMu.Unlock()
+
+	now := time.Now()
+	subWindowDuration := rl.windowSize / time.Duration(rl.subWindowNum)
+	timePassed := now.Sub(rl.lastUpdateTime)
+	elapsedBuckets := int(timePassed / subWindowDuration)
 
 	if elapsedBuckets > 0 {
 		if elapsedBuckets > rl.subWindowNum {
@@ -150,60 +152,79 @@ func NewRateLimiter(limit int, windowSize time.Duration, subWindowNum int) *Rate
 	return rl
 }
 
-func (rl *RateLimiter) Allow(userID string) bool {
+func (rl *RateLimiter) Allow(ID string) bool {
 	rl.limitersMu.RLock()
-	if limiter, exists := rl.limiters[userID]; exists {
+	if limiter, exists := rl.limiters[ID]; exists {
 		rl.limitersMu.RUnlock()
 		return limiter.Allow()
 	}
 	rl.limitersMu.RUnlock()
 
-	limiter := NewSlidingWindowRateLimiter(rl.limit, rl.windowSize, rl.subWindowNum)
+	newLimiter := NewSlidingWindowRateLimiter(rl.limit, rl.windowSize, rl.subWindowNum)
 
 	rl.limitersMu.Lock()
-	if limiter, exists := rl.limiters[userID]; exists {
+	if limiter, exists := rl.limiters[ID]; exists {
 		rl.limitersMu.Unlock()
 		return limiter.Allow()
 	}
-	rl.limiters[userID] = limiter
+	rl.limiters[ID] = newLimiter
 	rl.limitersMu.Unlock()
 
-	return limiter.Allow()
+	return newLimiter.Allow()
 }
 
 func (rl *RateLimiter) cleanupInactiveLimiters(ctx context.Context) {
-	const maxIterations = 5000
-
+	var cleanupInterval = max(time.Second*5, rl.windowSize*5)
+	var ticker = time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(rl.windowSize * 5):
+		case <-ticker.C:
+			rl.tryGc()
 		}
-		var zombies []string
-		rl.limitersMu.RLock()
-		iterations := 0
-		for userID, limiter := range rl.limiters {
-			if time.Since(limiter.lastUpdateTime) > rl.windowSize {
+	}
+}
+
+func (rl *RateLimiter) tryGc() {
+	const maxIterations = 5000
+	var zombies []string
+
+	iterations := 0
+	now := time.Now()
+
+	rl.limitersMu.RLock()
+	for userID, limiter := range rl.limiters {
+		if now.Sub(limiter.lastUpdateTime) > rl.windowSize*5 {
+			limiter.bucketsMu.Lock()
+			if now.Sub(limiter.lastUpdateTime) > rl.windowSize*5 {
+				limiter.bucketsMu.Unlock()
 				zombies = append(zombies, userID)
-			}
-			iterations++
-			if iterations >= maxIterations {
-				break
+			} else {
+				limiter.bucketsMu.Unlock()
 			}
 		}
-		rl.limitersMu.RUnlock()
-
-		if len(zombies) == 0 {
-			continue
+		iterations++
+		if iterations >= maxIterations {
+			break
 		}
+	}
+	rl.limitersMu.RUnlock()
 
-		rl.limitersMu.Lock()
+	if len(zombies) == 0 {
+		return
+	}
+
+	rl.limitersMu.Lock()
+	if len(zombies) == len(rl.limiters) {
+		rl.limiters = make(map[string]*SlidingWindowRateLimiter)
+	} else {
 		for _, userID := range zombies {
 			delete(rl.limiters, userID)
 		}
-		rl.limitersMu.Unlock()
 	}
+	rl.limitersMu.Unlock()
 }
 
 func (rl *RateLimiter) CancelCleanup() {

@@ -201,7 +201,8 @@ func TestCleanupInactiveLimiters(t *testing.T) {
 	rl.limitersMu.RUnlock()
 
 	// 等待清理周期
-	time.Sleep(60 * time.Millisecond)
+	time.Sleep(60 * time.Millisecond * 5)
+	rl.tryGc()
 
 	rl.limitersMu.RLock()
 	count := len(rl.limiters)
