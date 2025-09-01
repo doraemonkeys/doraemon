@@ -391,3 +391,14 @@ func (c *StartGateRunner) ReadyAtGate() {
 func (c *StartGateRunner) FinishCycle() {
 	c.barrier.waiterGroup.Done()
 }
+
+type SyncOnceWithoutWait struct {
+	_    NoCopy
+	done atomic.Bool
+}
+
+func (s *SyncOnceWithoutWait) Do(fn func()) {
+	if s.done.CompareAndSwap(false, true) {
+		fn()
+	}
+}
