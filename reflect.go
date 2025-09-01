@@ -11,57 +11,102 @@ func IsNil(x any) bool {
 	return reflect.ValueOf(x).IsNil()
 }
 
-// 查找结构体中的空字符串字段。如果找到，则返回字段名；否则返回空字符串。
-// string指针可以为空，但是string不可以为空。
-func FindStructEmptyStringField(s any, ignores map[string]bool) string {
-	if s == nil {
+// FindEmptyStringField recursively searches a struct for the first field that is an
+// empty string ("") or a pointer to an empty string. If an empty string field is
+// found, the function returns the name of that field.
+//
+// The function performs a depth-first search, exploring nested structs and
+// pointers to structs. It only inspects exported fields.
+//
+// Parameters:
+//   - obj: The struct (or a pointer to a struct) to inspect. If obj is not a struct
+//     or a pointer to one, or if it's nil, the function returns an empty string.
+//   - ignoredFields: A set of field names to ignore during the search. A field name
+//     in this map will be skipped. A nil map is treated as having no fields to ignore.
+//
+// Returns:
+//   - The name of the first empty string field found.
+//   - An empty string ("") if no empty string fields are found, or if the input is invalid.
+func FindEmptyStringField(obj any, ignoredFields map[string]bool) string {
+	if obj == nil {
 		return ""
 	}
-	return findStructEmptyStringField(reflect.ValueOf(s), ignores)
+	// Start the recursive search with the reflected value of the input object.
+	return findEmptyStringField(reflect.ValueOf(obj), ignoredFields)
 }
 
-func findStructEmptyStringField(v reflect.Value, ignores map[string]bool) string {
-	if v.Kind() != reflect.Pointer && v.Kind() != reflect.Struct {
-		return ""
-	}
-	kind := v.Kind()
-	if kind == reflect.Pointer {
+// findEmptyStringField is the recursive helper that implements the search logic.
+func findEmptyStringField(v reflect.Value, ignoredFields map[string]bool) string {
+	// If the value is a pointer, dereference it. We continue until we find
+	// a non-pointer value or a nil pointer.
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return ""
 		}
-		return findStructEmptyStringField(v.Elem(), ignores)
+		// Recurse on the element the pointer points to.
+		return findEmptyStringField(v.Elem(), ignoredFields)
 	}
+
+	// This function is designed to work only on structs.
+	if v.Kind() != reflect.Struct {
+		return ""
+	}
+
 	t := v.Type()
+	// Iterate over all fields of the struct.
 	for i := range v.NumField() {
-		if ignores != nil && ignores[t.Field(i).Name] {
-			continue
-		}
-		field := v.Field(i)
-		// 如果字段是私有的
-		// if !field.CanSet() {
+		fieldVal := v.Field(i)
+		fieldType := t.Field(i)
+
+		// Skip unexported fields.
+		// if !fieldType.IsExported() {
 		// 	continue
 		// }
-		switch field.Kind() {
+
+		// Check if the current field name is in the ignore list.
+		if ignoredFields != nil && ignoredFields[fieldType.Name] {
+			continue
+		}
+
+		// Inspect the field based on its kind.
+		switch fieldVal.Kind() {
 		case reflect.String:
-			if field.Len() == 0 {
-				return t.Field(i).Name
+			// Found a string field. Check if it's empty.
+			if fieldVal.Len() == 0 {
+				return fieldType.Name
 			}
-		case reflect.Ptr:
-			if field.IsNil() {
+
+		case reflect.Pointer:
+			// For pointer fields, we only care about pointers to strings or structs.
+			// A nil pointer is considered valid (not empty), so we skip it.
+			if fieldVal.IsNil() {
 				continue
 			}
-			field = field.Elem()
-			if field.Kind() == reflect.String && field.Len() == 0 {
-				return t.Field(i).Name
+
+			elem := fieldVal.Elem()
+			switch elem.Kind() {
+			case reflect.String:
+				// Found a pointer to a string. Check if the string is empty.
+				if elem.Len() == 0 {
+					return fieldType.Name
+				}
+			case reflect.Struct:
+				// Found a pointer to a struct. Recurse into the nested struct.
+				if foundField := findEmptyStringField(elem, ignoredFields); foundField != "" {
+					return foundField
+				}
 			}
-			if field.Kind() == reflect.Struct {
-				return findStructEmptyStringField(field, ignores)
-			}
-			continue
+
 		case reflect.Struct:
-			return findStructEmptyStringField(field, ignores)
+			// Found a nested struct. Recurse into it to check its fields.
+			if foundField := findEmptyStringField(fieldVal, ignoredFields); foundField != "" {
+				// If an empty string is found in the nested struct, return its name.
+				return foundField
+			}
 		}
 	}
+
+	// No empty string fields were found in this struct.
 	return ""
 }
 
@@ -129,7 +174,7 @@ func createEmptyInstance(rType reflect.Type, created map[reflect.Type]bool) inte
 			m.SetMapIndex(reflect.ValueOf(createEmptyInstance(rType.Key(), created)), reflect.ValueOf(createEmptyInstance(rType.Elem(), created)))
 		}
 		return m.Interface()
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if created[rType] {
 			return value.Interface()
 		}
