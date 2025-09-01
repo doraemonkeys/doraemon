@@ -5,6 +5,14 @@ import (
 	"sync"
 )
 
+type GoroutinePool interface {
+	Go(task func())
+	TryShrink()
+	Close()
+}
+
+var _ GoroutinePool = (*Pool2)(nil)
+
 // Pool contains logic of goroutine reuse.
 type Pool struct {
 	sema   chan struct{}

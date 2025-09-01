@@ -6,6 +6,10 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/doraemonkeys/doraemon"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -51,7 +55,7 @@ func BenchmarkSleep(b *testing.B) {
 // BenchmarkTimeWheel uses the timewheel to manage the same timeouts.
 func BenchmarkTimeWheel(b *testing.B) {
 
-	tw := New(time.Millisecond, 200)
+	tw := newForUnitTesting(time.Millisecond, 200)
 	tw.Start()
 	defer tw.Stop()
 
@@ -97,7 +101,7 @@ func BenchmarkTimeWheel_Go(b *testing.B) {
 	// 	),
 	// )
 
-	tw := New(time.Millisecond*10, 100)
+	tw := newForUnitTesting(time.Millisecond*10, 100)
 	tw.Start()
 
 	// 测试结束后停止时间轮，防止 goroutine 泄露
@@ -128,7 +132,7 @@ func BenchmarkTimeWheel_Go_Parallel(b *testing.B) {
 	// 		Level(100, 10*time.Millisecond),
 	// 	),
 	// )
-	tw := New(time.Millisecond*10, 100)
+	tw := newForUnitTesting(time.Millisecond*10, 100)
 	tw.Start()
 
 	b.Cleanup(func() {
@@ -168,7 +172,7 @@ func TestNew(t *testing.T) {
 	t.Run("ValidParameters", func(t *testing.T) {
 		interval := 100 * time.Millisecond
 		slotNum := 10
-		tw := New(interval, slotNum)
+		tw := newForUnitTesting(interval, slotNum)
 
 		if tw == nil {
 			t.Fatal("New() returned nil")
@@ -194,20 +198,20 @@ func TestNew(t *testing.T) {
 
 	// Test case 2: Invalid interval
 	t.Run("InvalidInterval", func(t *testing.T) {
-		mustPanic(t, "zero interval", func() { New(0, 10) })
-		mustPanic(t, "negative interval", func() { New(-1*time.Second, 10) })
+		mustPanic(t, "zero interval", func() { newForUnitTesting(0, 10) })
+		mustPanic(t, "negative interval", func() { newForUnitTesting(-1*time.Second, 10) })
 	})
 
 	// Test case 3: Invalid slot number
 	t.Run("InvalidSlotNum", func(t *testing.T) {
-		mustPanic(t, "zero slotNum", func() { New(1*time.Second, 0) })
-		mustPanic(t, "negative slotNum", func() { New(1*time.Second, -10) })
+		mustPanic(t, "zero slotNum", func() { newForUnitTesting(1*time.Second, 0) })
+		mustPanic(t, "negative slotNum", func() { newForUnitTesting(1*time.Second, -10) })
 	})
 }
 
 // TestTimeWheel_StartStop tests the lifecycle of the TimeWheel.
 func TestTimeWheel_StartStop(t *testing.T) {
-	tw := New(10*time.Millisecond, 10)
+	tw := newForUnitTesting(10*time.Millisecond, 10)
 	tw.Start()
 
 	// Check if the ticker is running (indirectly)
@@ -240,7 +244,7 @@ func TestTimeWheel_StartStop(t *testing.T) {
 // TestTimeWheel_AddTask_Simple tests adding and executing a single task with a short delay.
 func TestTimeWheel_AddTask_Simple(t *testing.T) {
 	interval := 20 * time.Millisecond
-	tw := New(interval, 10)
+	tw := newForUnitTesting(interval, 10)
 	tw.Start()
 	defer tw.Stop()
 
@@ -274,7 +278,7 @@ func TestTimeWheel_AddTask_LongDelay(t *testing.T) {
 	interval := 10 * time.Millisecond
 	slotNum := 10
 	wheelDuration := interval * time.Duration(slotNum) // 100ms
-	tw := New(interval, slotNum)
+	tw := newForUnitTesting(interval, slotNum)
 	tw.Start()
 	defer tw.Stop()
 
@@ -320,7 +324,7 @@ func TestTimeWheel_AddTask_LongDelay(t *testing.T) {
 // TestTimeWheel_AddTask_MultipleTasks tests adding and executing multiple tasks concurrently.
 func TestTimeWheel_AddTask_MultipleTasks(t *testing.T) {
 	interval := 10 * time.Millisecond
-	tw := New(interval, 20)
+	tw := newForUnitTesting(interval, 20)
 	tw.Start()
 	defer tw.Stop()
 
@@ -366,7 +370,7 @@ func TestTimeWheel_AddTask_Concurrent(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	interval := 5 * time.Millisecond
-	tw := New(interval, 50)
+	tw := newForUnitTesting(interval, 50)
 	tw.Start()
 	defer tw.Stop()
 
@@ -417,7 +421,7 @@ func TestTimeWheel_AddTask_Concurrent(t *testing.T) {
 func TestTimeWheel_GetPositionAndCircle(t *testing.T) {
 	interval := 100 * time.Millisecond
 	slotNum := 10
-	tw := New(interval, slotNum)
+	tw := newForUnitTesting(interval, slotNum)
 	// No need to start the wheel for this test
 
 	// Let's manually set currentPos for predictable results
@@ -455,7 +459,7 @@ func TestTimeWheel_GetPositionAndCircle(t *testing.T) {
 // TestTimeWheel_AddTask_NegativeDelay ensures negative delays are ignored.
 func TestTimeWheel_AddTask_NegativeDelay(t *testing.T) {
 	interval := 10 * time.Millisecond
-	tw := New(interval, 10)
+	tw := newForUnitTesting(interval, 10)
 	tw.Start()
 	defer tw.Stop()
 
@@ -469,5 +473,243 @@ func TestTimeWheel_AddTask_NegativeDelay(t *testing.T) {
 
 	if executed {
 		t.Error("task with negative delay should not be executed")
+	}
+}
+
+// newForUnitTestingWithMockPool is a helper to inject our mock pool for tests.
+func newForUnitTestingWithMockPool(interval time.Duration, slotNum int) (*TimeWheel, *doraemon.GoroutinePool) {
+	tw := New(
+		WithInterval(interval),
+		WithSlotNum(slotNum),
+	)
+	return tw, nil
+}
+
+func TestNewTimeWheel(t *testing.T) {
+	t.Run("Default values", func(t *testing.T) {
+		tw := New()
+		assert.Equal(t, defaultInterval, tw.interval)
+		assert.Equal(t, defaultSlotNum, tw.slotNum)
+		assert.NotNil(t, tw.workerPool)
+	})
+
+	t.Run("Custom values", func(t *testing.T) {
+		interval := 50 * time.Millisecond
+		slotNum := 60
+		tw := New(WithInterval(interval), WithSlotNum(slotNum))
+		assert.Equal(t, interval, tw.interval)
+		assert.Equal(t, slotNum, tw.slotNum)
+	})
+
+	t.Run("Panic on invalid config", func(t *testing.T) {
+		assert.Panics(t, func() { New(WithInterval(0)) })
+		assert.Panics(t, func() { New(WithSlotNum(0)) })
+		assert.Panics(t, func() { New(WithMaxGoroutineNum(0)) })
+	})
+}
+
+func TestTimeWheel_BasicTaskExecution(t *testing.T) {
+	tw, _ := newForUnitTestingWithMockPool(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	executed := new(atomic.Bool)
+	job := func() {
+		executed.Store(true)
+		wg.Done()
+	}
+
+	tw.Start()
+	// Add a task that should execute after ~3 ticks
+	tw.AddTask(35*time.Millisecond, job)
+
+	// Wait for the task to execute, with a timeout
+	waitWithTimeout(t, &wg, 100*time.Millisecond)
+
+	assert.True(t, executed.Load(), "Task was not executed")
+}
+
+func TestTimeWheel_LongDelayTask_MultipleCircles(t *testing.T) {
+	interval := 10 * time.Millisecond
+	slotNum := 10 // Total wheel duration = 10 * 10ms = 100ms
+	tw, _ := newForUnitTestingWithMockPool(interval, slotNum)
+	defer tw.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	var executionTime time.Time
+	var mu sync.Mutex
+	job := func() {
+		mu.Lock()
+		executionTime = time.Now()
+		mu.Unlock()
+		wg.Done()
+	}
+
+	tw.Start()
+	startTime := time.Now()
+	// Delay is 155ms, which requires one full circle (100ms) plus 5.5 more ticks.
+	delay := 155 * time.Millisecond
+	tw.AddTask(delay, job)
+
+	waitWithTimeout(t, &wg, 300*time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
+	require.False(t, executionTime.IsZero(), "Task did not execute")
+
+	elapsed := executionTime.Sub(startTime)
+	t.Logf("Task executed after %v", elapsed)
+
+	// Check if the execution happened around the expected time.
+	// Allow for some scheduling leeway.
+	assert.GreaterOrEqual(t, elapsed, delay, "Task executed too early")
+	assert.Less(t, elapsed, delay+3*interval, "Task executed too late")
+}
+
+func TestTimeWheel_Stop(t *testing.T) {
+	tw, _ := newForUnitTestingWithMockPool(10*time.Millisecond, 10)
+
+	executed := new(atomic.Bool)
+	job := func() {
+		executed.Store(true)
+	}
+
+	tw.Start()
+	tw.AddTask(50*time.Millisecond, job)
+
+	// Stop the wheel before the task is due
+	tw.Stop()
+
+	// Wait for longer than the task's delay to ensure it would have run
+	time.Sleep(100 * time.Millisecond)
+
+	assert.False(t, executed.Load(), "Task executed after Stop() was called")
+}
+
+func TestTimeWheel_AddTask_NegativeDelay2(t *testing.T) {
+	tw, _ := newForUnitTestingWithMockPool(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	executed := new(atomic.Bool)
+	job := func() { executed.Store(true) }
+
+	tw.Start()
+	// Negative delays should be ignored
+	tw.AddTask(-1*time.Second, job)
+
+	time.Sleep(50 * time.Millisecond)
+	assert.False(t, executed.Load(), "Task with negative delay was executed")
+}
+
+func TestTimeWheel_MultipleTasksInSameSlot(t *testing.T) {
+	tw, _ := newForUnitTestingWithMockPool(20*time.Millisecond, 10)
+	defer tw.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	var executionCount atomic.Int32
+
+	job := func() {
+		executionCount.Add(1)
+		wg.Done()
+	}
+
+	tw.Start()
+	// These tasks should all land in the same slot (or very close slots) and execute on the same tick
+	tw.AddTask(50*time.Millisecond, job)
+	tw.AddTask(51*time.Millisecond, job)
+	tw.AddTask(52*time.Millisecond, job)
+
+	waitWithTimeout(t, &wg, 200*time.Millisecond)
+
+	assert.Equal(t, int32(3), executionCount.Load(), "Not all tasks were executed")
+}
+
+// TestCyclicTask tests a recurring task that re-adds itself.
+func TestTimeWheel_CyclicTask(t *testing.T) {
+	interval := 20 * time.Millisecond
+	tw, _ := newForUnitTestingWithMockPool(interval, 10)
+	defer tw.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1) // We only signal done on the last execution
+
+	var executionCount atomic.Int32
+	maxExecutions := int32(3)
+
+	// Define the recurring job using a variable so it can refer to itself.
+	var recurringJob func()
+
+	recurringJob = func() {
+		count := executionCount.Add(1)
+		t.Logf("Task executed, count: %d", count)
+
+		if count < maxExecutions {
+			// Reschedule itself for the next interval
+			tw.AddTask(interval*2, recurringJob)
+		} else {
+			// Last execution, signal completion
+			wg.Done()
+		}
+	}
+
+	tw.Start()
+	// Add the first task
+	tw.AddTask(interval*2, recurringJob)
+
+	// Wait for the 3rd execution to complete
+	waitWithTimeout(t, &wg, 500*time.Millisecond)
+
+	assert.Equal(t, maxExecutions, executionCount.Load(), "Cyclic task did not execute the correct number of times")
+}
+
+func TestTimeWheel_AddTaskConcurrency(t *testing.T) {
+	tw, _ := newForUnitTestingWithMockPool(5*time.Millisecond, 20)
+	defer tw.Stop()
+
+	numTasks := 100
+	var wg sync.WaitGroup
+	wg.Add(numTasks)
+
+	var executionCount atomic.Int32
+	job := func() {
+		executionCount.Add(1)
+		wg.Done()
+	}
+
+	tw.Start()
+
+	// Start a bunch of goroutines to add tasks concurrently
+	for i := 0; i < numTasks; i++ {
+		go func() {
+			// Add tasks with a small, slightly varied delay
+			tw.AddTask(20*time.Millisecond, job)
+		}()
+	}
+
+	waitWithTimeout(t, &wg, 500*time.Millisecond)
+
+	assert.Equal(t, int32(numTasks), executionCount.Load(), "Not all concurrently added tasks were executed")
+}
+
+// waitWithTimeout is a test helper to wait on a WaitGroup with a timeout.
+func waitWithTimeout(t *testing.T, wg *sync.WaitGroup, timeout time.Duration) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		wg.Wait()
+	}()
+
+	select {
+	case <-done:
+		// Succeeded
+	case <-time.After(timeout):
+		t.Fatalf("timed out after %v waiting for WaitGroup", timeout)
 	}
 }

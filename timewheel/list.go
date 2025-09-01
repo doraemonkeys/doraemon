@@ -24,7 +24,7 @@ func NewConcurrentList[T any]() *ConcurrentList[T] {
 
 // RangeInSingleThread is a method that ranges over the elements of the list in a single thread.
 // It is not thread-safe and should only be used in a single thread.
-func (l *ConcurrentList[T]) RangeInSingleThread(f func(e *Node[T], remove func())) {
+func (l *ConcurrentList[T]) RangeInSingleThread(f func(e *Node[T], remove func()) bool) {
 	l.pushBackMu.Lock()
 	if l.tail == nil {
 		l.pushBackMu.Unlock()
@@ -33,11 +33,11 @@ func (l *ConcurrentList[T]) RangeInSingleThread(f func(e *Node[T], remove func()
 	current := l.tail
 	for current == l.tail {
 		prev := current.prev
-		f(current, func() {
+		ok := f(current, func() {
 			l.removeInSingleThreadRange(current)
 		})
 		current = prev
-		if current == nil {
+		if current == nil || !ok {
 			l.pushBackMu.Unlock()
 			return
 		}
@@ -46,9 +46,11 @@ func (l *ConcurrentList[T]) RangeInSingleThread(f func(e *Node[T], remove func()
 
 	for current != nil {
 		prev := current.prev
-		f(current, func() {
+		if !f(current, func() {
 			l.removeInSingleThreadRange(current)
-		})
+		}) {
+			return
+		}
 		current = prev
 	}
 }
@@ -111,9 +113,17 @@ func (s SharedConcurrentSet[T]) PushBack(v T) *Node[T] {
 	return s.sets[shardIndex].PushBack(v)
 }
 
-func (s SharedConcurrentSet[T]) RangeInSingleThread(f func(e *Node[T], remove func())) {
+func (s SharedConcurrentSet[T]) RangeInSingleThread(f func(e *Node[T], remove func()) bool) {
+	var ok = new(bool)
+	f2 := func(e *Node[T], remove func()) bool {
+		*ok = f(e, remove)
+		return *ok
+	}
 	for _, set := range s.sets {
-		set.RangeInSingleThread(f)
+		set.RangeInSingleThread(f2)
+		if ok != nil && !*ok {
+			return
+		}
 	}
 }
 
