@@ -873,3 +873,86 @@ func AppendFile(filePath string, data ...[]byte) error {
 	}
 	return f.Close()
 }
+
+// invalidChars matches characters that are illegal or problematic on Windows,
+// Linux, and macOS. It includes Windows' forbidden characters and ASCII control
+// characters (0x00–0x1F). Slash is not allowed on POSIX; backslash is not
+// allowed on Windows.
+var invalidChars = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1F]`)
+
+// multiUnderscores is used to collapse consecutive underscores created by replacements.
+var multiUnderscores = regexp.MustCompile(`_+`)
+
+// reservedNames are Windows device names that are disallowed as a base name
+// (case-insensitive), regardless of extension.
+var reservedNames = map[string]struct{}{
+	"CON": {}, "PRN": {}, "AUX": {}, "NUL": {},
+	"COM1": {}, "COM2": {}, "COM3": {}, "COM4": {}, "COM5": {}, "COM6": {}, "COM7": {}, "COM8": {}, "COM9": {},
+	"LPT1": {}, "LPT2": {}, "LPT3": {}, "LPT4": {}, "LPT5": {}, "LPT6": {}, "LPT7": {}, "LPT8": {}, "LPT9": {},
+}
+
+// maxFilenameBytes is the per-segment byte limit used by most filesystems.
+const maxFilenameBytes = 255
+
+// SanitizeFilename converts an arbitrary string into a filename that is valid
+// on mainstream operating systems. It replaces or trims characters that are
+// illegal on Windows, Linux, and macOS, avoids Windows reserved device names,
+// collapses runs of underscores, and enforces a 255-byte limit without breaking
+// UTF-8 runes.
+func SanitizeFilename(filename string) string {
+	if filename == "" {
+		return "unnamed"
+	}
+
+	// Replace illegal/problematic characters with underscores.
+	s := invalidChars.ReplaceAllString(filename, "_")
+
+	// Windows does not allow filenames to end with a space or a dot.
+	s = strings.TrimRight(s, " .")
+
+	// Guard against special path-like names or empty result.
+	if s == "" || s == "." || s == ".." {
+		s = "unnamed"
+	}
+
+	// If the (case-insensitive) base name equals a Windows reserved device name,
+	// prefix an underscore. The rule applies even if an extension is present.
+	base := s
+	if i := strings.IndexByte(base, '.'); i >= 0 {
+		base = base[:i]
+	}
+	if _, ok := reservedNames[strings.ToUpper(base)]; ok {
+		s = "_" + s
+	}
+
+	// Collapse multiple underscores introduced by replacements.
+	s = multiUnderscores.ReplaceAllString(s, "_")
+
+	// Enforce the 255-byte limit without splitting a UTF-8 rune.
+	if len(s) > maxFilenameBytes {
+		var b strings.Builder
+		b.Grow(maxFilenameBytes)
+		n := 0
+		for _, r := range s {
+			rl := utf8.RuneLen(r)
+			if n+rl > maxFilenameBytes {
+				break
+			}
+			b.WriteRune(r)
+			n += rl
+		}
+		s = b.String()
+		// After truncation, ensure the trailing char is still valid on Windows.
+		s = strings.TrimRight(s, " .")
+		if s == "" {
+			s = "unnamed"
+		}
+	}
+
+	// Final guard in case truncation produced "." or "..".
+	if s == "." || s == ".." {
+		s = "_" + s
+	}
+
+	return s
+}
